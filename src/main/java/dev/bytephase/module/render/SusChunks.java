@@ -14,52 +14,71 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.block.AmethystClusterBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
+import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkDataS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.UnloadChunkS2CPacket;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.text.Text;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.EmptyChunk;
 import net.minecraft.world.chunk.WorldChunk;
 
 /**
- * Highlights chunks that contain geode amethyst, which Anubis uses as a sign
- * that a base area has been generated and settled.
- *
- * <p>Adapted from Anubis' {@code SusChunkFinderModule}. That module keeps a full
- * packet/light/geode pipeline with several caches; this port keeps the core
- * signal (budding amethyst in a loaded chunk) and a strict per-tick time budget
- * so it cannot eat frames. Chunks are scanned a few at a time and drawn from a
- * cached list.</p>
+ * Finds amethyst growth candidates in loaded chunks. Growth and geode presence
+ * are heuristics, never proof of a base or a currently online player.
+ * Scanning is resumable and uses Bytephase's existing chunk-marker renderer.
  */
 public final class SusChunks extends Module {
     private static final long SCAN_BUDGET_NANOS = 1_500_000L;
     private static final int RESCAN_TICKS = 400;
-    private static final java.util.function.Predicate<BlockState> IS_BUDDING =
-            state -> state.isOf(Blocks.BUDDING_AMETHYST);
-    private static final int MAX_CACHED_SUSPECTS = 512;
-    private static final long CHUNK_TIMEOUT_MS = 120_000L;
+    private static final java.util.function.Predicate<BlockState> IS_EVIDENCE =
+            state -> state.isOf(Blocks.BUDDING_AMETHYST) || isGrowth(state);
+    private static final int MAX_CHUNKS = 289;
+    private static final int MAX_ALERTS = 128;
+    private static final int MAX_ALERT_HISTORY = 512;
+    private static final long CHUNK_TIMEOUT_NANOS = 120_000_000_000L;
 
     private static final class Suspect {
-        final int minY;
-        final int maxY;
+        final WorldChunk chunk;
+        final long revision;
+        final Box box;
+        final Vec3d center;
         final long since;
 
-        Suspect(int minY, int maxY, long since) {
-            this.minY = minY;
-            this.maxY = maxY;
+        Suspect(WorldChunk chunk, long revision, int minY, int maxY, long since) {
+            this.chunk = chunk;
+            this.revision = revision;
             this.since = since;
+            double x = chunk.getPos().x * 16.0;
+            double z = chunk.getPos().z * 16.0;
+            this.box = new Box(x, minY - 1.0, z, x + 16.0, maxY + 2.0, z + 16.0);
+            this.center = box.getCenter();
         }
     }
 
     private final NumberSetting range = add(new NumberSetting("Range", 4.0, 1.0, 8.0, 1.0));
+    private final ModeSetting signal = add(new ModeSetting("Signal",
+            new String[]{"Growth", "Geode"}, "Growth"));
     private final NumberSetting minBudding = add(new NumberSetting("MinBudding", 6.0, 1.0, 64.0, 1.0));
+    private final NumberSetting minGrowth = add(new NumberSetting("MinGrowth", 6.0, 1.0, 64.0, 1.0));
+    private final BooleanSetting logFinds = add(new BooleanSetting("LogFinds", true));
+    private final BooleanSetting announce = add(new BooleanSetting("ChatAnnounce", true));
     private final BooleanSetting tracers = add(new BooleanSetting("Tracers", false));
     private final ModeSetting style = add(new ModeSetting("Style",
             EspRenderer.STYLES, "Highlight"));
@@ -67,35 +86,61 @@ public final class SusChunks extends Module {
     private final ColorSetting color = add(new ColorSetting("Color", 0xFF6466E9));
 
     private static final class Scan {
+        final WorldChunk chunk;
+        final ChunkSection[] sections;
+        final long revision;
+        final boolean geode;
+        final Map<Long, WorldChunk> neighbors = new HashMap<>();
         int nextSection;
         int nextBlock;
+        boolean paletteChecked;
         int budding;
+        int growth;
         int minY = Integer.MAX_VALUE;
         int maxY = Integer.MIN_VALUE;
+        BlockPos evidence;
+
+        Scan(WorldChunk chunk, long revision, boolean geode) {
+            this.chunk = chunk;
+            this.sections = chunk.getSectionArray().clone();
+            this.revision = revision;
+            this.geode = geode;
+        }
     }
+
+    private record Alert(long key, WorldChunk chunk, long revision, String label, BlockPos pos) {}
 
     private final Map<Long, Suspect> suspects = new HashMap<>();
     private final Map<Long, Scan> scans = new HashMap<>();
     private final Deque<Long> queue = new ArrayDeque<>();
     private final Set<Long> queued = new HashSet<>();
+    private final Set<Long> deferred = new HashSet<>();
     private final List<Box> boxes = new ArrayList<>();
     private final List<Vec3d> centers = new ArrayList<>();
+    private final Deque<Alert> alerts = new ArrayDeque<>();
+    private final Map<Long, Integer> alertHistory = new LinkedHashMap<>();
+    private final Object changeLock = new Object();
+    private final Map<Long, Long> revisions = new HashMap<>();
+    private final Set<Long> changed = new HashSet<>();
+    private ChunkPos trackedOrigin;
+    private int trackedRange;
+    private long nextRevision;
 
     private ChunkPos scanOrigin;
     private int scanRange = -1;
     private int rescanTicks;
-    private long lastRefresh;
     private ClientWorld lastWorld;
+    private String lastSettings;
+    private int announceCooldown;
 
     public SusChunks() {
-        super("SusChunks", Category.RENDER, "Highlights chunks with geode amethyst");
+        super("SusChunks", Category.EXPLORE, "Finds amethyst growth or geode candidates in loaded chunks");
     }
 
     @Override
     protected void onEnable() {
         lastWorld = null;
         reset();
-        enqueueAroundPlayer();
     }
 
     @Override
@@ -105,16 +150,29 @@ public final class SusChunks extends Module {
     }
 
     private void reset() {
+        resetScan();
+        alerts.clear();
+        alertHistory.clear();
+        synchronized (changeLock) {
+            trackedOrigin = null;
+            revisions.clear();
+            changed.clear();
+        }
+        lastSettings = null;
+        announceCooldown = 0;
+    }
+
+    private void resetScan() {
         suspects.clear();
         scans.clear();
         queue.clear();
         queued.clear();
+        deferred.clear();
         boxes.clear();
         centers.clear();
         scanOrigin = null;
         scanRange = -1;
         rescanTicks = 0;
-        lastRefresh = 0L;
     }
 
     @Override
@@ -122,12 +180,21 @@ public final class SusChunks extends Module {
         var mc = BytePhase.mc;
         if (mc == null || mc.player == null || mc.world == null) {
             reset();
+            lastWorld = null;
             return;
         }
         if (mc.world != lastWorld) {
             reset();
             lastWorld = mc.world;
         }
+        String currentSettings = signal.getValue() + ":" + minBudding.asInt() + ":" + minGrowth.asInt()
+                + ":" + logFinds.getValue();
+        if (!currentSettings.equals(lastSettings)) {
+            resetScan();
+            alerts.clear();
+            lastSettings = currentSettings;
+        }
+        if (announceCooldown > 0) announceCooldown--;
         ChunkPos playerChunk = mc.player.getChunkPos();
         int currentRange = range.asInt();
         if (scanOrigin == null) {
@@ -140,136 +207,159 @@ public final class SusChunks extends Module {
             queue.clear();
             queued.clear();
             scans.clear();
+            deferred.clear();
             pruneSuspects(playerChunk, currentRange);
             enqueueAroundPlayer();
-        } else if (--rescanTicks <= 0) {
+        } else if (--rescanTicks <= 0 && queue.isEmpty() && scans.isEmpty()) {
             enqueueAroundPlayer();
         }
-
-        // One section per budget slice. Checking the deadline only between
-        // whole chunks meant a single 98k-block chunk scan could stall a frame.
+        for (long key : deferred) enqueue(key);
+        deferred.clear();
+        synchronized (changeLock) {
+            deferred.addAll(changed);
+            changed.clear();
+        }
+        for (long key : deferred) {
+            scans.remove(key);
+            suspects.remove(key);
+        }
         long deadline = System.nanoTime() + SCAN_BUDGET_NANOS;
         while (!queue.isEmpty() && System.nanoTime() < deadline) {
             long key = queue.peek();
-            if (!scanSlice(key, deadline)) {
+            if (deferred.contains(key) || !scanSlice(key, deadline)) {
                 queue.poll();
                 queued.remove(key);
                 scans.remove(key);
             }
         }
 
-        long now = System.currentTimeMillis();
-        if (now - lastRefresh > CHUNK_TIMEOUT_MS) {
-            rebuildRenderCache(now);
-        }
+        rebuildRenderCache(System.nanoTime());
+        drainAlert();
     }
 
     /** @return true while the chunk still has sections left to scan. */
     private boolean scanSlice(long key, long deadline) {
-        var mc = BytePhase.mc;
-        if (mc.world == null) {
-            return false;
-        }
-        int chunkX = ChunkPos.getPackedX(key);
-        int chunkZ = ChunkPos.getPackedZ(key);
-        if (!mc.world.getChunkManager().isChunkLoaded(chunkX, chunkZ)) {
-            return false;
-        }
-        WorldChunk chunk = mc.world.getChunk(chunkX, chunkZ);
-        if (chunk instanceof EmptyChunk) {
+        WorldChunk chunk = loadedChunk(key);
+        if (chunk == null) {
+            suspects.remove(key);
             return false;
         }
 
-        Scan scan = scans.computeIfAbsent(key, ignored -> new Scan());
-        ChunkSection[] sections = chunk.getSectionArray();
-        if (scan.budding >= minBudding.asInt()) {
-            finishChunk(key, scan);
+        Scan scan = scans.computeIfAbsent(key,
+                ignored -> new Scan(chunk, revision(key), signal.getValue().equals("Geode")));
+        if (!valid(key, scan)) {
+            suspects.remove(key);
+            deferred.add(key);
             return false;
         }
+        ChunkSection[] sections = scan.sections;
         while (scan.nextSection < sections.length) {
+            if (System.nanoTime() >= deadline) return true;
             ChunkSection section = sections[scan.nextSection];
             int sectionIndex = scan.nextSection;
-            // hasAny consults the section palette, so sections that contain no
-            // budding amethyst at all are skipped without reading 4,096 blocks.
-            if (section == null || section.isEmpty() || !section.hasAny(IS_BUDDING)) {
-                scan.nextSection++;
-                scan.nextBlock = 0;
-                continue;
+            if (!scan.paletteChecked) {
+                if (section == null || section.isEmpty() || !section.hasAny(
+                        state -> System.nanoTime() >= deadline || IS_EVIDENCE.test(state))) {
+                    nextSection(scan);
+                    continue;
+                }
+                scan.paletteChecked = true;
             }
             if (scanSection(chunk, section, sectionIndex, scan, deadline)) {
-                scan.nextSection++;
-                scan.nextBlock = 0;
+                nextSection(scan);
             }
             return true;
         }
 
+        if (System.nanoTime() >= deadline) return true;
+        if (!valid(key, scan)) {
+            suspects.remove(key);
+            deferred.add(key);
+            return false;
+        }
         finishChunk(key, scan);
         return false;
     }
 
+    private static void nextSection(Scan scan) {
+        scan.nextSection++;
+        scan.nextBlock = 0;
+        scan.paletteChecked = false;
+    }
+
     private boolean scanSection(WorldChunk chunk, ChunkSection section, int sectionIndex,
                                 Scan scan, long deadline) {
-        int needed = minBudding.asInt();
         int sectionY = chunk.sectionIndexToCoord(sectionIndex) * 16;
-        while (scan.nextBlock < 4096 && scan.budding < needed) {
+        while (scan.nextBlock < 4096) {
+            if ((scan.nextBlock & 31) == 0 && System.nanoTime() >= deadline) return false;
             int index = scan.nextBlock++;
             int y = index / 256;
             int x = index / 16 % 16;
             int z = index % 16;
             BlockState state = section.getBlockState(x, y, z);
-            if (state.isOf(Blocks.BUDDING_AMETHYST)) {
-                scan.budding++;
+            boolean budding = state.isOf(Blocks.BUDDING_AMETHYST);
+            BlockPos pos = null;
+            if (budding || isGrowth(state)) {
+                pos = new BlockPos(chunk.getPos().x * 16 + x, sectionY + y, chunk.getPos().z * 16 + z);
+            }
+            boolean growth = !scan.geode && isGrowth(state) && attachedToBudding(state, pos, scan);
+            if (budding) scan.budding++;
+            if (growth) scan.growth++;
+            if (scan.geode ? budding : growth) {
                 int worldY = sectionY + y;
                 scan.minY = Math.min(scan.minY, worldY);
                 scan.maxY = Math.max(scan.maxY, worldY);
-            }
-            // Resume partway through a dense section on the next tick rather
-            // than letting one 4,096-block scan exceed the frame-time budget.
-            if ((scan.nextBlock & 63) == 0 && System.nanoTime() >= deadline) {
-                return false;
+                if (scan.evidence == null) scan.evidence = pos;
             }
         }
-        return scan.nextBlock >= 4096 || scan.budding >= needed;
+        return true;
+    }
+
+    private static boolean isGrowth(BlockState state) {
+        return state.isOf(Blocks.SMALL_AMETHYST_BUD) || state.isOf(Blocks.MEDIUM_AMETHYST_BUD)
+                || state.isOf(Blocks.LARGE_AMETHYST_BUD) || state.isOf(Blocks.AMETHYST_CLUSTER);
+    }
+
+    private boolean attachedToBudding(BlockState state, BlockPos pos, Scan scan) {
+        BlockPos neighbor = pos.offset(state.get(AmethystClusterBlock.FACING).getOpposite());
+        long key = ChunkPos.toLong(neighbor.getX() >> 4, neighbor.getZ() >> 4);
+        WorldChunk chunk;
+        if (key == scan.chunk.getPos().toLong()) {
+            chunk = scan.chunk;
+        } else {
+            if (!scan.neighbors.containsKey(key)) scan.neighbors.put(key, loadedChunk(key));
+            chunk = scan.neighbors.get(key);
+        }
+        return chunk != null && chunk.getBlockState(neighbor).isOf(Blocks.BUDDING_AMETHYST);
+    }
+
+    private boolean qualifies(Scan scan) {
+        return scan.geode ? scan.budding >= minBudding.asInt()
+                : scan.growth >= minGrowth.asInt();
     }
 
     private void finishChunk(long key, Scan scan) {
-        if (scan.budding >= minBudding.asInt()) {
-            Suspect existing = suspects.get(key);
-            boolean changed = existing == null
-                    || existing.minY != scan.minY
-                    || existing.maxY != scan.maxY;
-            if (existing == null && suspects.size() >= MAX_CACHED_SUSPECTS) {
-                evictOldestSuspect();
+        if (qualifies(scan) && scan.evidence != null) {
+            suspects.put(key, new Suspect(scan.chunk, scan.revision, scan.minY, scan.maxY, System.nanoTime()));
+            BlockPos pos = scan.evidence;
+            String label = scan.geode ? "Geode (" + scan.budding + " budding)"
+                    : "Amethyst growth (" + scan.growth + ")";
+            boolean recorded = false;
+            if (logFinds.getValue() && BytePhase.locations != null) {
+                recorded = BytePhase.locations.remember("geode", label, pos);
             }
-            suspects.put(key, new Suspect(scan.minY, scan.maxY,
-                    // Expiry and eviction should follow the most recent
-                    // successful verification, not the first time this
-                    // chunk was found. Otherwise a stable in-range chunk
-                    // disappears after two minutes even though it is
-                    // continuously re-scanned.
-                    System.currentTimeMillis()));
-            if (changed) {
-                lastRefresh = 0L;
+            int mode = scan.geode ? 2 : 1;
+            int previous = alertHistory.getOrDefault(key, 0);
+            if (announce.getValue() && (previous & mode) == 0 && (!logFinds.getValue() || recorded)) {
+                if (alerts.size() >= MAX_ALERTS) alerts.poll();
+                alerts.add(new Alert(key, scan.chunk, scan.revision, label, pos));
             }
-        } else if (suspects.remove(key) != null) {
-            // Drop the cached box immediately; otherwise a chunk that no
-            // longer qualifies would stay on screen until the next timeout.
-            lastRefresh = 0L;
-        }
-    }
-
-    private void evictOldestSuspect() {
-        long oldestKey = 0L;
-        long oldestSince = Long.MAX_VALUE;
-        for (Map.Entry<Long, Suspect> entry : suspects.entrySet()) {
-            if (entry.getValue().since < oldestSince) {
-                oldestSince = entry.getValue().since;
-                oldestKey = entry.getKey();
+            if (!alertHistory.containsKey(key) && alertHistory.size() >= MAX_ALERT_HISTORY) {
+                alertHistory.remove(alertHistory.keySet().iterator().next());
             }
-        }
-        if (oldestSince != Long.MAX_VALUE) {
-            suspects.remove(oldestKey);
-            lastRefresh = 0L;
+            alertHistory.put(key, previous | mode);
+        } else {
+            suspects.remove(key);
         }
     }
 
@@ -282,11 +372,18 @@ public final class SusChunks extends Module {
         scanOrigin = mc.player.getChunkPos();
         int radius = range.asInt();
         scanRange = radius;
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                long key = ChunkPos.toLong(scanOrigin.x + dx, scanOrigin.z + dz);
-                if (queued.add(key)) {
-                    queue.add(key);
+        synchronized (changeLock) {
+            trackedOrigin = scanOrigin;
+            trackedRange = radius;
+            revisions.keySet().removeIf(key -> !inTrackedRange(key));
+            changed.removeIf(key -> !inTrackedRange(key));
+        }
+        for (int ring = 0; ring <= radius; ring++) {
+            for (int dx = -ring; dx <= ring; dx++) {
+                for (int dz = -ring; dz <= ring; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) == ring) {
+                        enqueue(ChunkPos.toLong(scanOrigin.x + dx, scanOrigin.z + dz));
+                    }
                 }
             }
         }
@@ -294,38 +391,163 @@ public final class SusChunks extends Module {
 
     private void pruneSuspects(ChunkPos center, int radius) {
         suspects.keySet().removeIf(key ->
-                Math.abs(ChunkPos.getPackedX(key) - center.x) > radius
-                        || Math.abs(ChunkPos.getPackedZ(key) - center.z) > radius);
-        lastRefresh = 0L;
-        rebuildRenderCache(System.currentTimeMillis());
+                Math.abs((long) ChunkPos.getPackedX(key) - center.x) > radius
+                        || Math.abs((long) ChunkPos.getPackedZ(key) - center.z) > radius);
+        rebuildRenderCache(System.nanoTime());
     }
 
     private void rebuildRenderCache(long now) {
         boxes.clear();
         centers.clear();
-        suspects.entrySet().removeIf(entry -> now - entry.getValue().since > CHUNK_TIMEOUT_MS);
+        suspects.entrySet().removeIf(entry -> now - entry.getValue().since > CHUNK_TIMEOUT_NANOS
+                || loadedChunk(entry.getKey()) != entry.getValue().chunk
+                || !unchanged(entry.getKey(), entry.getValue().revision)
+                || scanOrigin == null
+                || Math.abs((long) ChunkPos.getPackedX(entry.getKey()) - scanOrigin.x) > scanRange
+                || Math.abs((long) ChunkPos.getPackedZ(entry.getKey()) - scanOrigin.z) > scanRange);
         for (Map.Entry<Long, Suspect> entry : suspects.entrySet()) {
-            long key = entry.getKey();
-            int chunkX = ChunkPos.getPackedX(key);
-            int chunkZ = ChunkPos.getPackedZ(key);
             Suspect suspect = entry.getValue();
-            double minY = suspect.minY - 1.0;
-            double maxY = suspect.maxY + 2.0;
-            Box box = new Box(chunkX * 16.0, minY, chunkZ * 16.0,
-                    chunkX * 16.0 + 16.0, maxY, chunkZ * 16.0 + 16.0);
-            boxes.add(box);
-            centers.add(box.getCenter());
+            boxes.add(suspect.box);
+            centers.add(suspect.center);
         }
-        lastRefresh = now;
+    }
+
+    private void enqueue(long key) {
+        if (queue.size() < MAX_CHUNKS && queued.add(key)) queue.add(key);
+    }
+
+    private boolean inTrackedRange(long key) {
+        return trackedOrigin != null
+                && Math.abs((long) ChunkPos.getPackedX(key) - trackedOrigin.x) <= trackedRange
+                && Math.abs((long) ChunkPos.getPackedZ(key) - trackedOrigin.z) <= trackedRange;
+    }
+
+    private WorldChunk loadedChunk(long key) {
+        if (lastWorld == null || lastWorld != BytePhase.mc.world) return null;
+        int x = ChunkPos.getPackedX(key);
+        int z = ChunkPos.getPackedZ(key);
+        if (!lastWorld.getChunkManager().isChunkLoaded(x, z)) return null;
+        WorldChunk chunk = lastWorld.getChunk(x, z);
+        return chunk instanceof EmptyChunk ? null : chunk;
+    }
+
+    private long revision(long key) {
+        synchronized (changeLock) {
+            return revisions.getOrDefault(key, 0L);
+        }
+    }
+
+    private boolean unchanged(long key, long expected) {
+        synchronized (changeLock) {
+            return !changed.contains(key) && revisions.getOrDefault(key, 0L) == expected;
+        }
+    }
+
+    private boolean valid(long key, Scan scan) {
+        if (loadedChunk(key) != scan.chunk || !unchanged(key, scan.revision)) return false;
+        ChunkSection[] sections = scan.chunk.getSectionArray();
+        if (sections.length != scan.sections.length) return false;
+        for (int i = 0; i < sections.length; i++) {
+            if (sections[i] != scan.sections[i]) return false;
+        }
+        for (Map.Entry<Long, WorldChunk> neighbor : scan.neighbors.entrySet()) {
+            if (loadedChunk(neighbor.getKey()) != neighbor.getValue()) return false;
+        }
+        return true;
+    }
+
+    private void changedChunk(int x, int z) {
+        synchronized (changeLock) {
+            // Growth attachment can depend on the four adjacent chunks.
+            changeNotice(x, z);
+            changeNotice(x - 1, z);
+            changeNotice(x + 1, z);
+            changeNotice(x, z - 1);
+            changeNotice(x, z + 1);
+        }
+    }
+
+    private void changeNotice(int x, int z) {
+        long key = ChunkPos.toLong(x, z);
+        if (!inTrackedRange(key) || (!revisions.containsKey(key) && revisions.size() >= MAX_CHUNKS)) return;
+        revisions.put(key, ++nextRevision);
+        changed.add(key);
+    }
+
+    private void changedBlock(BlockPos pos) {
+        int x = pos.getX() >> 4;
+        int z = pos.getZ() >> 4;
+        synchronized (changeLock) {
+            changeNotice(x, z);
+            if ((pos.getX() & 15) == 0) changeNotice(x - 1, z);
+            if ((pos.getX() & 15) == 15) changeNotice(x + 1, z);
+            if ((pos.getZ() & 15) == 0) changeNotice(x, z - 1);
+            if ((pos.getZ() & 15) == 15) changeNotice(x, z + 1);
+        }
+    }
+
+    @Override
+    public boolean onPacketReceive(Packet<?> packet) {
+        if (packet instanceof BlockUpdateS2CPacket update) {
+            changedBlock(update.getPos());
+        } else if (packet instanceof ChunkDataS2CPacket data) {
+            changedChunk(data.getChunkX(), data.getChunkZ());
+        } else if (packet instanceof UnloadChunkS2CPacket unload) {
+            changedChunk(unload.pos().x, unload.pos().z);
+        } else if (packet instanceof ChunkDeltaUpdateS2CPacket delta) {
+            BlockPos[] first = new BlockPos[1];
+            delta.visitUpdates((pos, state) -> {
+                if (first[0] == null) first[0] = pos.toImmutable();
+            });
+            if (first[0] != null) changedChunk(first[0].getX() >> 4, first[0].getZ() >> 4);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean onPacketSend(Packet<?> packet) {
+        if (packet instanceof PlayerActionC2SPacket action) {
+            switch (action.getAction()) {
+                case START_DESTROY_BLOCK, ABORT_DESTROY_BLOCK, STOP_DESTROY_BLOCK -> changedBlock(action.getPos());
+                default -> {}
+            }
+        } else if (packet instanceof PlayerInteractBlockC2SPacket interaction) {
+            var hit = interaction.getBlockHitResult();
+            changedBlock(hit.getBlockPos());
+            changedBlock(hit.getBlockPos().offset(hit.getSide()));
+        }
+        return false;
+    }
+
+    private void drainAlert() {
+        alerts.removeIf(alert -> loadedChunk(alert.key) != alert.chunk || deferred.contains(alert.key)
+                || !unchanged(alert.key, alert.revision)
+                || Math.abs((long) ChunkPos.getPackedX(alert.key) - scanOrigin.x) > scanRange
+                || Math.abs((long) ChunkPos.getPackedZ(alert.key) - scanOrigin.z) > scanRange);
+        if (!announce.getValue()) {
+            alerts.clear();
+            return;
+        }
+        if (announceCooldown > 0 || alerts.isEmpty()) return;
+        Alert alert = alerts.poll();
+        announceCooldown = 20;
+        BlockPos pos = alert.pos;
+        BytePhase.mc.inGameHud.getChatHud().addMessage(Text.literal("[Bytephase] " + alert.label
+                + " candidate at " + pos.getX() + " " + pos.getY() + " " + pos.getZ()));
+    }
+
+    @Override
+    public String getHudText() {
+        return getName() + " [" + suspects.size() + "]";
     }
 
     @Override
     public void onRender3D(MatrixStack matrices,
                            net.minecraft.client.render.VertexConsumerProvider consumers,
                            float tickDelta) {
-        if (boxes.isEmpty()) {
-            return;
-        }
+        if (lastWorld == null || BytePhase.mc.world != lastWorld) return;
+        rebuildRenderCache(System.nanoTime());
+        if (boxes.isEmpty()) return;
         EspRenderer.drawBoxes(boxes, color.getValue(), style.getValue(), throughWalls.getValue());
         if (tracers.getValue()) {
             RenderBox.drawLinesFrom(RenderBox.tracerOrigin(), centers,

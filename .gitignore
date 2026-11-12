@@ -4,3 +4,9 @@ run/
 .idea/
 *.iml
 .DS_Store
+
+# Local profiles, coordinates, and diagnostic logs
+/config/
+/logs/
+/crash-reports/
+*.log

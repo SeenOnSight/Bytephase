@@ -2,12 +2,16 @@ package dev.bytephase.input;
 
 import dev.bytephase.BytePhase;
 import dev.bytephase.module.Module;
+import dev.bytephase.module.player.TradeAssist;
 import dev.bytephase.ui.ClickGuiScreen;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -35,6 +39,32 @@ public final class Keybinds {
                     InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
             BINDINGS.put(module, binding);
         }
+        ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+            if (!(screen instanceof MerchantScreen)) {
+                return;
+            }
+            // Vanilla does not queue ordinary module keybinds inside a handled
+            // screen. Consume this bind before it can also move/drop an item.
+            boolean[] held = {false};
+            ScreenKeyboardEvents.allowKeyPress(screen).register((current, input) -> {
+                Module module = merchantModule(input);
+                if (module == null || client.currentScreen != current || !client.isWindowFocused()) {
+                    return true;
+                }
+                if (!held[0]) {
+                    held[0] = true;
+                    module.toggle();
+                }
+                return false;
+            });
+            ScreenKeyboardEvents.allowKeyRelease(screen).register((current, input) -> {
+                if (merchantModule(input) == null) {
+                    return true;
+                }
+                held[0] = false;
+                return false;
+            });
+        });
     }
 
     public static void tick(MinecraftClient mc) {
@@ -52,7 +82,6 @@ public final class Keybinds {
         }
 
         if (mc.currentScreen != null) {
-            // Do not let queued key presses toggle modules while a screen is open.
             while (clickGuiKey.wasPressed()) {
             }
             for (KeyBinding binding : BINDINGS.values()) {
@@ -115,5 +144,14 @@ public final class Keybinds {
 
     public static void suppressNextClickGui() {
         suppressNextClickGui = true;
+    }
+
+    private static Module merchantModule(KeyInput input) {
+        for (Map.Entry<Module, KeyBinding> entry : BINDINGS.entrySet()) {
+            if (entry.getKey() instanceof TradeAssist && entry.getValue().matchesKey(input)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 }

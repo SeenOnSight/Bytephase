@@ -1,6 +1,8 @@
 package dev.bytephase;
 
 import dev.bytephase.config.ConfigManager;
+import dev.bytephase.config.ProfileManager;
+import dev.bytephase.data.LocationStore;
 import dev.bytephase.module.ModuleManager;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -15,6 +17,8 @@ public final class BytePhase {
     public static MinecraftClient mc;
     public static ModuleManager modules;
     public static ConfigManager config;
+    public static ProfileManager profiles;
+    public static LocationStore locations;
 
     private static String version;
 

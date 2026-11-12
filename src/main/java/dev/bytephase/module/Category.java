@@ -7,6 +7,7 @@ public enum Category {
     RENDER("Render"),
     WORLD("World"),
     MISC("Misc"),
+    EXPLORE("Explore"),
     UI("UI");
 
     public final String display;

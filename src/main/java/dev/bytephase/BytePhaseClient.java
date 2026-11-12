@@ -2,6 +2,9 @@ package dev.bytephase;
 
 import dev.bytephase.config.ConfigManager;
 import dev.bytephase.command.FakePlayerCommand;
+import dev.bytephase.command.BytephaseCommand;
+import dev.bytephase.config.ProfileManager;
+import dev.bytephase.data.LocationStore;
 import dev.bytephase.input.Keybinds;
 import dev.bytephase.module.Module;
 import dev.bytephase.module.ModuleManager;
@@ -24,8 +27,12 @@ public final class BytePhaseClient implements ClientModInitializer {
         BytePhase.modules = new ModuleManager();
         BytePhase.modules.init();
         BytePhase.config = new ConfigManager();
+        BytePhase.profiles = new ProfileManager();
+        BytePhase.locations = new LocationStore();
+        BytePhase.locations.load();
         Keybinds.init();
         FakePlayerCommand.register();
+        BytephaseCommand.register();
 
         // Config load enables modules, and several modules read game options in
         // onEnable. Those options only exist once MinecraftClient has finished
@@ -45,6 +52,7 @@ public final class BytePhaseClient implements ClientModInitializer {
             Keybinds.tick(client);
             BytePhase.modules.tick();
             BytePhase.config.tick();
+            BytePhase.locations.tick();
         });
 
         HudElementRegistry.addLast(Identifier.of("bytephase", "hud"), (context, counter) -> {
@@ -76,6 +84,7 @@ public final class BytePhaseClient implements ClientModInitializer {
                 module.shutdown();
             }
             BytePhase.config.save();
+            BytePhase.locations.save();
         });
     }
 }

@@ -41,6 +41,7 @@ import dev.bytephase.module.misc.FastUse;
 import dev.bytephase.module.misc.SlowSwing;
 import dev.bytephase.module.misc.AutoReconnect;
 import dev.bytephase.module.misc.CoordLogger;
+import dev.bytephase.module.misc.CoordSnapper;
 import dev.bytephase.module.misc.FastPlace;
 import dev.bytephase.module.misc.KillEffects;
 import dev.bytephase.module.combat.AutoAnchor;
@@ -104,6 +105,8 @@ import dev.bytephase.module.movement.Yaw;
 import dev.bytephase.module.player.AntiAfk;
 import dev.bytephase.module.player.AutoEat;
 import dev.bytephase.module.player.AutoReplenish;
+import dev.bytephase.module.player.HotbarArrange;
+import dev.bytephase.module.player.TradeAssist;
 import dev.bytephase.module.player.AutoFish;
 import dev.bytephase.module.player.AutoRespawn;
 import dev.bytephase.module.player.AutoTool;
@@ -160,6 +163,9 @@ import dev.bytephase.module.render.Zoom;
 import dev.bytephase.module.world.Nuker;
 import dev.bytephase.module.world.PacketMine;
 import dev.bytephase.module.world.Scaffold;
+import dev.bytephase.module.world.BaseFinder;
+import dev.bytephase.module.world.Navigator;
+import dev.bytephase.module.world.TunnelMiner;
 import dev.bytephase.render.EntitySnapshot;
 import dev.bytephase.render.EspRenderer;
 import dev.bytephase.render.RenderBox;
@@ -370,6 +376,8 @@ public final class ModuleManager {
         add(new SpeedMine());
         add(new Offhand());
         add(new AutoReplenish());
+        add(new HotbarArrange());
+        add(new TradeAssist());
 
         // Render
         add(new Watermark());
@@ -421,6 +429,12 @@ public final class ModuleManager {
         add(new Nuker());
         add(new PacketMine());
         add(new Scaffold());
+        add(new TunnelMiner());
+
+        // Explore
+        add(new BaseFinder());
+        add(new Navigator());
+        add(new CoordSnapper());
 
         // Misc
         add(new FastPlace());

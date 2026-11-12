@@ -48,6 +48,7 @@
     "InGameOverlayRendererMixin",
     "PacketByteBufMixin",
     "HandledScreenAccessor",
+    "MerchantScreenAccessor",
     "RenderLayerAccessor",
     "KeyBindingAccessor"
   ],
