@@ -27,7 +27,7 @@ import net.minecraft.util.math.Vec3d;
 /** Shared, bounded discovery markers with optional labels and tracers. */
 public abstract class DiscoveryOverlay extends Module {
     protected final NumberSetting radius = add(new NumberSetting("ChunkRadius", 8, 1, 12, 1));
-    private final ModeSetting style = add(new ModeSetting("Style", EspRenderer.STYLES, "Outline"));
+    private final ModeSetting style = add(new ModeSetting("Style", EspRenderer.STYLES, EspRenderer.BOX_STYLE));
     private final ColorSetting color = add(new ColorSetting("Color", 0xFF6466E9));
     private final BooleanSetting tracers = add(new BooleanSetting("Tracers", false));
     private final BooleanSetting labels = add(new BooleanSetting("Labels", false));

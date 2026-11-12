@@ -2,7 +2,7 @@
 
 [Home](../README.md) · [Exploration & workflows](EXPLORATION.md) · [Adding modules](ADDING_MODULES.md)
 
-Bytephase 0.2.1 includes 101 discovery, visual, inventory and input-assistance modules.
+Bytephase 0.2.2 includes 101 discovery, visual, inventory and input-assistance modules.
 The current catalog uses normal interaction reach and movement inputs. Packet
 spoofing, movement amplification, automatic combat and collision bypass modules
 have been removed from the source and release JAR.
@@ -236,3 +236,10 @@ Appearance settings apply even when the Appearance entry is disabled. Compact
 render groups and expansion state are saved with the existing ClickGUI layout.
 Search opens matching groups without changing saved expansion state. The
 existing module names, settings and keybind IDs are preserved.
+
+## Fixed in 0.2.2
+
+The discovery overlay's default style is now `Box`, the supported outline-only
+mode. Version 0.2.1 used the unregistered name `Outline`, causing construction
+of MotionScanner to fail before the client finished initializing. This shared
+default also applies to PrimeChunkFinder and SpawnerFinder.

@@ -20,8 +20,9 @@ import java.util.List;
  */
 public final class EspRenderer {
     private static final List<Box> VISIBLE_BOXES = new ArrayList<>();
+    public static final String BOX_STYLE = "Box";
     public static final String[] STYLES = {
-            "Box", "Filled", "Highlight", "Shader Glow", "Shader Blur",
+            BOX_STYLE, "Filled", "Highlight", "Shader Glow", "Shader Blur",
             "Shader Galaxy", "Shader Prism", "Shader Neon", "Shader Scan"
     };
     public static final String[] TARGETS = {"Players", "Monsters", "Players + Monsters", "All"};

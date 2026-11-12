@@ -1,5 +1,16 @@
 # Bytephase debugging and performance notes
 
+## Version 0.2.2 — 2026-11-12
+
+Fixed the reported initialization crash in the shared discovery overlay. Its
+style default now references the supported `Box` mode through the same constant
+used in the ESP style catalog. The invalid `Outline` name threw from
+ModeSetting while MotionScanner was being constructed; PrimeChunkFinder and
+SpawnerFinder inherited the same invalid default.
+
+Production compilation and JAR remapping succeeded. The game was not launched
+and runtime tests were not run for this hotfix. The module catalog remains 101.
+
 ## Version 0.2.1 — 2026-11-12
 
 The catalog now contains 101 modules. This migration adds 13 utility and
