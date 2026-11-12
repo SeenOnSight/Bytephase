@@ -43,9 +43,6 @@ public final class BytePhaseClient implements ClientModInitializer {
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             InventoryMove inventoryMove = BytePhase.modules.get(InventoryMove.class);
             if (inventoryMove != null && inventoryMove.isEnabled()) inventoryMove.updateKeys();
-            // Native combat runs before vanilla input/actions/movement, never
-            // between a movement packet and its tick-end marker.
-            BytePhase.modules.vanillaCombatTick();
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

@@ -84,11 +84,10 @@ public final class ConfigManager {
     }
 
     public void save() {
-        dirty = false;
-        dirtyTicks = 0;
         if (loading || preserveUnreadableConfig || BytePhase.modules == null) {
             return;
         }
+        Path temporary = null;
         try {
             JsonObject root = new JsonObject();
             root.addProperty("configVersion", CONFIG_VERSION);
@@ -112,15 +111,28 @@ public final class ConfigManager {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
+            temporary = Files.createTempFile(parent, "bytephase-", ".tmp");
             Files.writeString(temporary, root.toString(), StandardCharsets.UTF_8);
             try {
                 Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException e) {
                 Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
             }
+            dirty = false;
         } catch (Exception e) {
+            // Retry after the debounce delay, including when an explicit save
+            // failed without a preceding requestSave().
+            dirty = true;
             BytePhase.LOGGER.error("Failed to save config to {}", path, e);
+        } finally {
+            dirtyTicks = 0;
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (java.io.IOException | SecurityException e) {
+                    BytePhase.LOGGER.warn("Failed to remove temporary config file", e);
+                }
+            }
         }
     }
 
@@ -148,7 +160,6 @@ public final class ConfigManager {
                         source, version, CONFIG_VERSION);
                 return;
             }
-            ClickGuiScreen.loadLayout(root.get("clickGui"));
             boolean migrateLegacyDefaults = version < 2;
             // The AntiVanish default change was introduced in config v3.
             // Keep its migration boundary fixed when later versions are added;
@@ -156,16 +167,13 @@ public final class ConfigManager {
             // user values that happen to equal the old default.
             boolean migrateV2Defaults = version < 3;
             boolean migratePlayerEspStyle = version < 4;
-            boolean migrateAutoCrystalDefaults = version < 5;
-            boolean migrateNbtSafetyDefault = version < 6;
-            boolean migrateAutoCrystalRange = version < 7;
-            boolean migrateAutoCrystalShortRange = version < 9;
             JsonObject modulesJson = root.getAsJsonObject("modules");
             if (modulesJson == null) {
                 preserveUnreadableConfig = true;
                 BytePhase.LOGGER.warn("Config {} has no modules object; leaving it untouched", source);
                 return;
             }
+            ClickGuiScreen.loadLayout(root.get("clickGui"));
             for (Entry<String, JsonElement> entry : modulesJson.entrySet()) {
                 try {
                     Module module = BytePhase.modules.getByName(entry.getKey());
@@ -179,16 +187,7 @@ public final class ConfigManager {
                             JsonElement settingJson = settingsJson.get(setting.getName());
                             if (settingJson != null) {
                                 try {
-                                    // 6 was the old default, but the old unarmoured
-                                    // damage estimate made virtually every crystal
-                                    // placement fail that safety check.
-                                    if (migrateLegacyDefaults && module.getName().equals("AutoCrystal")
-                                            && setting.getName().equals("MaxSelfDamage")
-                                            && settingJson.isJsonPrimitive()
-                                            && settingJson.getAsDouble() == 6.0) {
-                                        setting.fromJson(new com.google.gson.JsonPrimitive(30.0));
-                                        continue;
-                                    }
+
                                     if (migrateLegacyDefaults && isPreviousEspDefault(module, setting, settingJson)) {
                                         continue;
                                     }
@@ -205,71 +204,7 @@ public final class ConfigManager {
                                         setting.fromJson(new com.google.gson.JsonPrimitive("Model Wireframe"));
                                         continue;
                                     }
-                                    // AutoCrystal previously acquired targets
-                                    // only within 4.5 blocks and ignored hostile
-                                    // mobs by default. Upgrade untouched old
-                                    // defaults while preserving other values.
-                                    if (migrateAutoCrystalDefaults
-                                            && module.getName().equals("AutoCrystal")
-                                            && setting.getName().equals("Range")
-                                            && settingJson.isJsonPrimitive()
-                                            && settingJson.getAsDouble() == 4.5) {
-                                        setting.fromJson(new com.google.gson.JsonPrimitive(18.0));
-                                        continue;
-                                    }
-                                    // The prior default of 12 did not cover all
-                                    // targets reachable by a crystal placed
-                                    // near the edge of the player's interaction
-                                    // range. Upgrade that untouched default too.
-                                    if (migrateAutoCrystalRange
-                                            && module.getName().equals("AutoCrystal")
-                                            && setting.getName().equals("Range")
-                                            && settingJson.isJsonPrimitive()
-                                            && settingJson.getAsDouble() == 12.0) {
-                                        setting.fromJson(new com.google.gson.JsonPrimitive(18.0));
-                                        continue;
-                                    }
-                                    // Older builds saved 6 as the target-acquisition
-                                    // range. The current module default is 18, and the
-                                    // short saved value made AutoCrystal appear to work
-                                    // only when standing close to its target. Migrate
-                                    // only that exact legacy value once.
-                                    if (migrateAutoCrystalShortRange
-                                            && module.getName().equals("AutoCrystal")
-                                            && setting.getName().equals("Range")
-                                            && settingJson.isJsonPrimitive()
-                                            && settingJson.getAsDouble() == 6.0) {
-                                        setting.fromJson(new com.google.gson.JsonPrimitive(18.0));
-                                        continue;
-                                    }
-                                    if (migrateAutoCrystalDefaults
-                                            && module.getName().equals("AutoCrystal")
-                                            && setting.getName().equals("BreakRange")
-                                            && settingJson.isJsonPrimitive()
-                                            && settingJson.getAsDouble() == 4.5) {
-                                        setting.fromJson(new com.google.gson.JsonPrimitive(6.0));
-                                        continue;
-                                    }
-                                    if (migrateAutoCrystalDefaults
-                                            && module.getName().equals("AutoCrystal")
-                                            && setting.getName().equals("TargetHostiles")
-                                            && settingJson.isJsonPrimitive()
-                                            && !settingJson.getAsBoolean()) {
-                                        setting.fromJson(new com.google.gson.JsonPrimitive(true));
-                                        continue;
-                                    }
-                                    // Unlimited NBT bypasses vanilla's memory
-                                    // bound and was previously enabled by
-                                    // default. Turn only that untouched default
-                                    // off when upgrading old configs.
-                                    if (migrateNbtSafetyDefault
-                                            && module.getName().equals("AntiPacketKick")
-                                            && setting.getName().equals("UnlimitedNbt")
-                                            && settingJson.isJsonPrimitive()
-                                            && settingJson.getAsBoolean()) {
-                                        setting.fromJson(new com.google.gson.JsonPrimitive(false));
-                                        continue;
-                                    }
+
                                     setting.fromJson(settingJson);
                                 } catch (RuntimeException settingError) {
                                     BytePhase.LOGGER.warn("Ignoring invalid setting {}.{} in {}",
@@ -279,9 +214,7 @@ public final class ConfigManager {
                         }
                     }
                     boolean enabled = moduleJson.has("enabled") && moduleJson.get("enabled").getAsBoolean();
-                    if (enabled) {
-                        module.setEnabled(true);
-                    }
+                    module.setEnabled(enabled);
                 } catch (RuntimeException moduleError) {
                     BytePhase.LOGGER.warn("Ignoring invalid module config {} in {}", entry.getKey(), source,
                             moduleError);
@@ -296,6 +229,7 @@ public final class ConfigManager {
         } finally {
             loading = false;
             if (loadedSuccessfully) {
+                preserveUnreadableConfig = false;
                 // Persist migrations and the version marker once. This prevents
                 // intentional values equal to an old default from being
                 // rewritten on every subsequent launch.

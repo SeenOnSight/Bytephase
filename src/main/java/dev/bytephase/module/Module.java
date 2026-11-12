@@ -56,6 +56,11 @@ public abstract class Module {
     }
 
     public void setEnabled(boolean value) {
+        // Retired modules and arbitrary instances cannot be reactivated by an
+        // old configuration or profile. Only the current catalog owns modules.
+        if (value && BytePhase.modules != null && !BytePhase.modules.all().contains(this)) {
+            return;
+        }
         if (enabled == value) {
             return;
         }

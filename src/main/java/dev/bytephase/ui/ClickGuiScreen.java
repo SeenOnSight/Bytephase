@@ -4,7 +4,6 @@ import dev.bytephase.BytePhase;
 import dev.bytephase.input.Keybinds;
 import dev.bytephase.module.Category;
 import dev.bytephase.module.Module;
-import dev.bytephase.render.Render2D;
 import dev.bytephase.setting.BooleanSetting;
 import dev.bytephase.setting.ColorSetting;
 import dev.bytephase.setting.ModeSetting;
@@ -522,7 +521,6 @@ public final class ClickGuiScreen extends Screen {
         draggingColorShift = -1;
         hitCount = 0;
     }
-
 
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {

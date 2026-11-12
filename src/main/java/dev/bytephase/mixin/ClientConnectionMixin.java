@@ -3,7 +3,6 @@ package dev.bytephase.mixin;
 import dev.bytephase.BytePhase;
 import dev.bytephase.module.misc.AntiPacketKick;
 import dev.bytephase.module.misc.PacketLogger;
-import dev.bytephase.util.PacketSendBypass;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.TimeoutException;
 import net.minecraft.network.ClientConnection;
@@ -17,8 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ClientConnectionMixin {
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void bytephase$packetHandlers(Packet<?> packet, CallbackInfo ci) {
-        if (PacketSendBypass.isActive() || BytePhase.modules == null) {
-            dev.bytephase.util.ServerFacing.observe((ClientConnection) (Object) this, packet);
+        if (BytePhase.modules == null) {
             return;
         }
         PacketLogger logger = BytePhase.modules.packetLogger();
@@ -29,7 +27,6 @@ public abstract class ClientConnectionMixin {
             ci.cancel();
             return;
         }
-        dev.bytephase.util.ServerFacing.observe((ClientConnection) (Object) this, packet);
     }
 
     /** Runs before the packet reaches its listener, so modules can drop it. */

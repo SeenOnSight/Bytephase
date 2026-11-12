@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "name": "Bytephase regression tests",
   "environment": "client",
-  "mixins": ["bytephase-gametest.mixins.json"],
   "entrypoints": {
-    "fabric-client-gametest": ["dev.bytephase.test.ModuleRegressionTest"]
+    "fabric-client-gametest": [
+      "dev.bytephase.test.UtilityRegressionTest"
+    ]
   },
   "depends": {
     "bytephase": "*",

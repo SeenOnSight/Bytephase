@@ -4,10 +4,8 @@ import dev.bytephase.BytePhase;
 import dev.bytephase.module.Category;
 import dev.bytephase.module.Module;
 import dev.bytephase.module.combat.AutoTotem;
-import dev.bytephase.module.combat.ElytraMace;
 import dev.bytephase.setting.ModeSetting;
 import dev.bytephase.setting.NumberSetting;
-import dev.bytephase.util.SilentRotation;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerInventory;
@@ -81,9 +79,7 @@ public final class HotbarArrange extends Module {
             return;
         }
         if (mc.player.isUsingItem() || mc.options.attackKey.isPressed() || mc.options.useKey.isPressed()
-                || mc.interactionManager.isBreakingBlock() || mc.player.hurtTime > 0
-                || ElytraMace.isBusy() || SilentRotation.isActive()
-                || enabled("Blink") || enabled("FakeLag")) {
+                || mc.interactionManager.isBreakingBlock() || mc.player.hurtTime > 0) {
             quietTicks = QUIET_TICKS;
             return;
         }
@@ -217,11 +213,6 @@ public final class HotbarArrange extends Module {
             case "WindCharge" -> stack.isOf(Items.WIND_CHARGE);
             default -> false;
         };
-    }
-
-    private static boolean enabled(String name) {
-        Module module = BytePhase.modules == null ? null : BytePhase.modules.getByName(name);
-        return module != null && module.isEnabled();
     }
 
     private void reset() {

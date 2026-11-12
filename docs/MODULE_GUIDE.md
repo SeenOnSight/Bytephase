@@ -1,21 +1,11 @@
-# Bytephase Module Guide
+# Bytephase module guide
 
-[Home](../README.md) · [Exploration & workflows](EXPLORATION.md) ·
-[Adding modules](ADDING_MODULES.md)
+[Home](../README.md) · [Exploration & workflows](EXPLORATION.md) · [Adding modules](ADDING_MODULES.md)
 
-Detailed controls and behavior notes for Bytephase's combat, movement,
-visuals and everyday utilities. The original README's useful module details
-are retained here, grouped for easier browsing.
-
-The ClickGUI's large `B` is drawn from `0` and `1` digits; the HUD watermark
-uses the matching `[01]` mark.
-
-**Jump to:** [Controls](#controls) · [New utilities](#exploration--workflow-utilities) ·
-[Combat](#combat--aiming) · [Movement](#movement--travel) ·
-[Visuals](#esp-shaders--hud) · [Everyday tools](#packets-chat--session-tools) ·
-[Development](#development--local-tools)
-
----
+Bytephase 0.2.0 includes 88 discovery, visual, inventory and input-assistance modules.
+The current catalog uses normal interaction reach and movement inputs. Packet
+spoofing, movement amplification, automatic combat and collision bypass modules
+have been removed from the source and release JAR.
 
 ## Controls
 
@@ -56,7 +46,7 @@ stored by vanilla in `options.txt`.
 | Tool | Panel / entry point | Behavior reference |
 | --- | --- | --- |
 | `BaseFinder` | Explore | [Storage/utility thresholds, spawners and the soft 0.8 ms scan budget](EXPLORATION.md#basefinder) |
-| `SusChunks` | Explore | [Growth/Geode evidence and the soft 1.5 ms scan budget](EXPLORATION.md#suschunks) |
+| `SusChunks` | Explore | [Growth, weighted growth, geode and activity evidence and the soft 1.5 ms scan budget](EXPLORATION.md#suschunks) |
 | `Navigator` | Explore | [Selected waypoint distance, direction and arrival](EXPLORATION.md#navigator) |
 | `CoordSnapper` | Explore | [One-shot position or looked-at block capture](EXPLORATION.md#coordsnapper) |
 | `TunnelMiner` | World | [Locked heading, visible mining and optional AutoWalk](EXPLORATION.md#tunnelminer) |
@@ -69,125 +59,26 @@ The scanners inspect loaded chunks and record candidates. Historical findings
 are server/dimension-scoped local data; live markers are removed when their
 loaded evidence becomes invalid. Existing visual styles are covered below.
 
-## Combat & aiming
+## Input assistance
 
-- `AutoCrystal` and `KillAura` have optional `VanillaPackets` mode: camera-visible
-  aim is sent through vanilla movement, with no extra silent-look flush packets.
-  Actions wait for transmitted aim, and AutoCrystal uses actual ray-hit placement
-  faces. It applies conservative limits; see [GRIM_SOURCE_AUDIT.md](GRIM_SOURCE_AUDIT.md) for
-  conflicts and test coverage. This is not a verified Grim bypass.
-
-- `AutoCrystal` and `KillAura` have an optional `Conservative` setting for
-  attribute-based reach limits, visible interactions, required rotation and
-  correction backoff. `KillAura.RequireAttack` limits automation to when you
-  hold attack. These are compatibility controls, not verified anti-cheat
-  bypasses or a global legit mode. See [SERVER_COMPATIBILITY.md](SERVER_COMPATIBILITY.md) for details.
-
-- `AutoCrystal` and `KillAura` have `ThroughWalls` settings. AutoCrystal also
-  limits obstructed interactions with `PlaceWallsRange` and `BreakWallsRange`;
-  damage and self-damage checks still account for block exposure. The server
-  can reject attacks or placements through walls regardless of these settings.
-  AutoCrystal can place and attack in the same tick, with separate configurable
-  delays. `CrystalsPerTick` sets a maximum of 1–8 placement attempts and 1–8
-  break attempts per eligible cycle. Non-Focus placements use distinct,
-  non-overlapping bases; Focus can retry the same base. `Conservative` disables
-  those retries and limits each cycle to one action. Batches share a self-damage budget, so
-  fewer may be attempted. Set both delays to 0 for the fastest tick-based rate
-  (existing saved settings are preserved). Server limits, lag and anti-cheat
-  may reject rapid actions. The ArrayList displays rolling one-second rates:
-  `P` accepted client placements, `B` attack attempts, and `X` nearby server
-  explosion packets matched to those attacks. They are not guaranteed kills or
-  confirmed server placements, and server latency or anti-cheat can limit speed.
-
-- The aiming modules ease their turning instead of stepping at a constant
-  speed. `AimAssist` and `BowAimbot` steer the camera every rendered frame, not
-  once per tick: the remaining angle is closed by `1 - exp(-rate * dt)` of
-  `Smoothing`, which is frame-rate independent and cannot overshoot, and `Speed`
-  caps the turn. Your own mouse movement is applied first each frame and is
-  never reverted, so the assist adds to it rather than fighting it.
-  `AimAssist` aims at the target's neck, or at the chest when the target stands
-  a block or more above you, instead of at their eyes. `KillAura`, `AutoCrystal`,
-  `AimAssist` and `BowAimbot` all expose `RotationSpeed`/`Speed` and `Smoothing`,
-  and `KillAura` and `AimAssist` also have `Humanize`, a small wandering offset
-  so the aim is not a perfectly straight line. `KillAura` and `AutoCrystal`
-  rotate the server-side facing only: the aim is written into the outgoing
-  movement packet (and into your own third-person model) while the camera stays
-  exactly where you pointed it. Attacks are sent once the aim has actually
-  reached the target, and AutoCrystal waits until it is within a few degrees of
-  the base before interacting so the server sees a valid rotation.
-
-- `AutoMine` defaults to `ObsidianOnly`, mining the four blocks beside a
-  nearby player's feet. Turn it off for the older broader block selection;
-  hold a suitable pickaxe, or use your preferred tool-selection module.
-
-- `Surround` can use `KeyActivate`: enable the module, turn on that setting,
-  and assign its `Bind`. Each press attempts one ring at your current feet;
-  moving away, losing the required obsidian, or disabling the module cancels it.
-  With `KeyActivate` off, the bind toggles the module as usual.
-
-- `PearlPhase` is a one-shot attempt: face a nearby wall with an ender pearl
-  in your hotbar, then toggle it. It throws at
-  the lower edge and switches back. Free space behind the wall is not required
-  client-side; pearl clipping still depends on server physics and is not
-  guaranteed, so do not rely on it to escape dangerous situations.
-
-- `Criticals` uses packet-based mini movement before an attack. It is
-  intentionally conservative, but can conflict with `FakeLag`.
-
-- The combat set added a self-protection and consumable group. `FeetTrap`
-  seals the four cells beside your feet in one burst and re-arms when you move
-  to a new block; `SelfTrap` builds a foot ring, a head ring and a roof;
-  `SelfFill` places one block next to you, confirms it, and turns itself off.
-  The player's own cell cannot be filled — vanilla refuses a block that
-  overlaps a living entity — so these build around the feet rather than inside
-  them. `HoleFill` closes nearby crystal holes, nearest first, with a bounded
-  scan.
-
-- `KeepSprint` and `SprintReset` are opposites and should not both be on:
-  `KeepSprint` re-applies sprint for a few ticks after a hit, `SprintReset`
-  drops sprint after a hit so the next one lands full knockback. `NoHitDelay`
-  clears vanilla's ten-tick cooldown after a missed attack.
-
-- `AutoPot` throws a healing splash potion at the configured health, aiming at
-  the ground and restoring your camera pitch afterwards unless `Rotate` is off.
-  `ThrowPot` is the one-shot version: it throws one potion, or two below
-  `DoubleBelow`, then disables. `AutoSoup` eats mushroom, rabbit, beetroot or
-  suspicious stew on a health trigger rather than hunger, for soup-PvP plugins.
-
-## Movement & travel
-
-- `Strafe` redirects your existing horizontal momentum toward your movement
-  keys while airborne. `Control` adjusts how quickly it turns (100% is instant).
-  It works alongside `Speed`, does not create speed from a standstill, and leaves
-  vertical motion unchanged. Servers can reject movement or apply corrections.
-
-- `ElytraBounce` uses a configurable downward `Angle` (default 75 degrees) while
-  actively bouncing, and attempts to jump and re-deploy on landing; server corrections,
-  anti-cheat, latency, and conflicts with other movement modules can affect it.
-
-- The movement batch covers hunger, effects and mounted travel. `AntiHunger`
-  withholds the server-visible sprint start packet, which is the part that adds
-  sprint exhaustion; your own sprinting and sprint-jump input still work, and
-  toggling the module resynchronises the server. `AntiLevitation` drops the
-  levitation effect packet for your player and clears an effect that was
-  already active. Both are client-side; the server still owns hunger and
-  effect simulation.
-
-- `NoSlow` also removes soul sand's velocity multiplier and the sneak/crawl
-  walking slowdown. `IceSpeed` replaces ice-family slipperiness with its
-  `Friction` value; lower values accelerate and brake like ground, so ice
-  travel gets much faster than vanilla's long slow slide.
-
-- `EntitySpeed` drives the vehicle you are riding at `Speed` along its own yaw
-  while a movement key is held. `EntityControl` removes the saddle requirement
-  for horses and the carrot/fungus-on-a-stick requirement for pigs and
-  striders; the server still simulates the animal's movement.
-
-- `TickShift` banks one tick per tick spent standing still, up to `Charge`, and
-  spends that charge as extra ground speed. `FastAccel` raises the per-tick
-  acceleration toward `Speed`. `Yaw` holds your yaw at a fixed angle.
-  `ClickTP` teleports to the top of the block under the crosshair on a use-key
-  press and sends the matching position packet; servers can reject the move.
+- **AimAssist** runs while attack is held, the game has focus and a visible
+  target is inside the configured field of view. Effective range is capped by
+  normal entity interaction reach. Camera turning is smoothed and leaves your
+  mouse input in control.
+- **AutoClicker** repeats normal crosshair attacks while attack is held. It
+  always waits for the full vanilla attack cooldown and shares the one-attack
+  per-tick guard with vanilla input.
+- **AutoArmor**, **AutoTotem** and **AutoWeapon** use normal inventory/slot
+  interactions. **WTap**, **SprintReset** and **JumpReset** assist timing with
+  ordinary movement input.
+- **Sprint**, **AutoWalk**, **AutoJump**, **Parkour**, **Sneak**, **SafeWalk**,
+  **InventoryMove** and **Yaw** are the remaining movement aids. They do not
+  increase movement speed or grant flight. InventoryMove excludes text-entry
+  and creative-inventory screens.
+- **AutoEat**, **AutoTool**, **AutoFish**, **AutoReplenish**, **ChestStealer**,
+  **ChestSwap**, **Offhand**, **AntiAFK**, **AutoRespawn** and **RotationLock**
+  provide normal item, inventory and input assistance. Hotbar and merchant
+  workflows are described in the exploration guide.
 
 ## ESP, shaders & HUD
 
@@ -195,7 +86,7 @@ loaded evidence becomes invalid. Existing visual styles are covered below.
   game exits normally. A hard crash can leave the option values changed.
 
 - `MiningProgress` highlights blocks being mined and shows a progress bar and
-  name. Your own normal mining and PacketMine are supported. Other players use
+  name. Your own normal mining is supported. Other players use
   the server's coarse break stages, marked `~`; they are not exact timers and
   only appear when the server supplies a resolvable player ID and progress.
 
@@ -241,9 +132,7 @@ loaded evidence becomes invalid. Existing visual styles are covered below.
   vanilla renderer would not otherwise submit.
 
 - `ArmorHUD` uses 20-pixel slots, compact durability text and optional bars so
-  four pieces never overlap. `Scaffold` supports normal bridge mode and a
-  jump-based tower mode, selects a block from the hotbar and validates the
-  support face and reach before placing.
+  four pieces never overlap.
 
 - The shared `Style` setting offers `Box` (outline), `Filled`, `Highlight`
   (fill + outline) and shader styles. `Shader` and `Shader Glow` use the
@@ -294,65 +183,26 @@ loaded evidence becomes invalid. Existing visual styles are covered below.
   pass; `ViewModel`'s `OffsetX` is mirrored on the left arm so the two hands
   stay symmetric instead of sliding off-centre.
 
-## Packets, chat & session tools
+## Chat, session and local tools
 
-- `Blink` and `FakeLag` discard stale movement on server corrections and world
-  changes, and stop buffering for `CorrectionPause` ticks (default 10) so vanilla
-  can acknowledge corrections. FakeLag also has a `MaxDelay` age cap (default
-  20 ticks), in addition to its packet-count cap.
+ChatFilter and AntiSpam filter displayed messages; NameProtect changes local
+labels. PMSound, VisualRange, Notifications, KillEffects and AntiVanish provide
+local alerts or visuals. AutoReconnect manages reconnect attempts. PacketLogger
+and AntiPacketKick provide diagnostics and bounded decoder protection.
 
-- `AutoLog` suppresses the next `AutoReconnect` attempt, so an intentional
-  combat log is not immediately undone. Rejoin manually, or leave `AutoLog`
-  off if you want `AutoReconnect` to handle every disconnect.
+`/bytephase waypoint`, `/bytephase findings` and `/bytephase profile` manage
+local navigation and saved settings. `/fakeplayer` creates a local visual-test
+player and does not create a server entity.
 
-- `ExtraTab` raises the tab list's 80-entry cut-off. `InventoryInfo` lists
-  shulker contents and stored enchantments from the `CONTAINER` and
-  `STORED_ENCHANTMENTS` components, capped by `MaxLines`, so empty containers
-  add nothing. `BetterChat` raises the 100-message history and the 256-character
-  chat input limit; both are client-side limits.
+## Development and verification
 
-## Development & local tools
-
-### Build
-
-The configured build uses Fabric Loom 1.19.2 and requires Java 25 for the
-build JVM. The mod targets Java 21 bytecode.
+Build with Java 25; the mod targets Java 21:
 
 ```sh
-./gradlew build
+./gradlew build runClientGameTest
 ```
 
-The mod JAR is written to `build/libs/`. See the
-[README](../README.md#install) for the configured Minecraft/Fabric versions
-and installation instructions.
-
-### Existing regression-test command
-
-`./gradlew runClientGameTest` runs the isolated Fabric client tests in a temporary
-singleplayer world. The tests do not use your normal `run/` game directory.
-
-### Fake players
-
-- `/fakeplayer` or `/fakeplayer spawn [name]` creates a client-only player next
-  to you (the default name is `FakePlayer`). These entities are useful for
-  checking player-targeting visuals and combat selection locally; they are not
-  server entities and cannot receive server-side damage.
-- `/fakeplayer remove` removes the most recently created fake player, and
-  `/fakeplayer clear` removes all of them. Fake players are also removed when
-  the world changes, with a limit of 32 at a time.
-
-### Architecture & source notes
-
-- Render, packet and snapshot dispatch is built from immutable enabled-module
-  lists, so disabled modules add no per-frame or per-packet work. Empty render
-  and packet paths are skipped entirely.
-
-- The supplied Clarity visual pipeline is described in the visual notes above.
-  Exploration and workflow utilities use Bytephase's module, command and
-  storage structure; see [EXPLORATION.md](EXPLORATION.md#architecture).
-
-- [ADDING_MODULES.md](ADDING_MODULES.md) documents the module/setting/mixin
-  structure, Minecraft mapping translations and how to add further modules.
-
-- This client is for personal use. 2b2t permits many client modifications, but
-  server rules and anti-cheat behavior can change; use it at your own risk.
+The client tests use an isolated temporary world. They exercise the active
+catalog, settings recovery, discovery heuristics, scanner budgets, cache
+invalidation, keybinds, eating, GUI and rendering. See [audit notes](AUDIT.md)
+for measured scan completion and performance limits.

@@ -21,6 +21,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.chunk.WorldChunk;
 
 /**
  * Highlights nearby blocks of a chosen kind.
@@ -54,7 +55,8 @@ public final class BlockEsp extends Module {
             Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY);
     private static final Set<Block> SPAWNER = Set.of(Blocks.SPAWNER);
 
-    private static final int COLUMNS_PER_TICK = 6;
+    private static final int MAX_COLUMNS_PER_TICK = 128;
+    private static final long SCAN_BUDGET_NANOS = 800_000L;
     private static final int MAX_RESULTS = 1024;
 
     private final ModeSetting mode = add(new ModeSetting("Mode",
@@ -73,9 +75,11 @@ public final class BlockEsp extends Module {
     private final Set<BlockPos> found = new HashSet<>();
     private final List<Box> boxes = new ArrayList<>();
     private final List<Vec3d> centers = new ArrayList<>();
+    private final BlockPos.Mutable scanPosition = new BlockPos.Mutable();
 
     private int scanX;
     private int scanZ;
+    private int scanY = Integer.MIN_VALUE;
     private int scanRemaining;
     private int spiralLength;
     private int spiralSteps;
@@ -183,8 +187,10 @@ public final class BlockEsp extends Module {
             }
         }
         Set<Block> wanted = wanted();
+        long deadline = System.nanoTime() + SCAN_BUDGET_NANOS;
         int columns = 0;
-        while (scanning && columns < COLUMNS_PER_TICK && scanRemaining > 0) {
+        while (scanning && columns < MAX_COLUMNS_PER_TICK && scanRemaining > 0
+                && System.nanoTime() < deadline) {
             if (Math.abs(scanX) <= horizontal && Math.abs(scanZ) <= horizontal) {
                 int worldX = scanCenter.getX() + scanX;
                 int worldZ = scanCenter.getZ() + scanZ;
@@ -193,9 +199,12 @@ public final class BlockEsp extends Module {
                 // and probing unloaded columns can create empty chunk
                 // placeholders or waste work at the edge of view distance.
                 if (mc.world.getChunkManager().isChunkLoaded(worldX >> 4, worldZ >> 4)) {
-                    scanColumn(mc.world, worldX, worldZ, scanCenter.getY(), wanted, vertical);
+                    if (!scanColumn(mc.world, worldX, worldZ, scanCenter.getY(), wanted, vertical, deadline)) {
+                        break;
+                    }
                 }
             }
+            scanY = Integer.MIN_VALUE;
             columns++;
             scanRemaining--;
             advanceSpiral();
@@ -214,6 +223,7 @@ public final class BlockEsp extends Module {
     }
 
     private void resetSpiral() {
+        scanY = Integer.MIN_VALUE;
         spiralLength = 1;
         spiralSteps = 0;
         spiralLegs = 0;
@@ -238,21 +248,28 @@ public final class BlockEsp extends Module {
         }
     }
 
-    private void scanColumn(net.minecraft.client.world.ClientWorld world, int worldX, int worldZ,
-                            int centerY, Set<Block> wanted, int vertical) {
-        BlockPos.Mutable pos = new BlockPos.Mutable();
-        for (int y = centerY - vertical; y <= centerY + vertical; y++) {
-            pos.set(worldX, y, worldZ);
-            BlockState state = world.getBlockState(pos);
+    /** A deadline can split a column; scanY resumes it without skipping blocks. */
+    private boolean scanColumn(ClientWorld world, int worldX, int worldZ,
+                               int centerY, Set<Block> wanted, int vertical, long deadline) {
+        WorldChunk chunk = world.getChunk(worldX >> 4, worldZ >> 4);
+        int top = Math.min(centerY + vertical, world.getTopYInclusive());
+        if (scanY == Integer.MIN_VALUE) scanY = Math.max(centerY - vertical, world.getBottomY());
+        while (scanY <= top) {
+            if ((scanY & 15) == 0 && System.nanoTime() >= deadline) return false;
+            scanPosition.set(worldX, scanY++, worldZ);
+            // Resolve the loaded chunk once per slice, and reuse a mutable
+            // lookup position; only actual findings allocate immutable positions.
+            BlockState state = chunk.getBlockState(scanPosition);
             if (state.isAir() || !wanted.contains(state.getBlock())) {
                 continue;
             }
-            found.add(pos.toImmutable());
+            found.add(scanPosition.toImmutable());
             if (found.size() >= MAX_RESULTS) {
                 finishScan();
-                return;
+                return true;
             }
         }
+        return true;
     }
 
     private void finishScan() {
@@ -280,7 +297,7 @@ public final class BlockEsp extends Module {
     @Override
     public void onRender3D(MatrixStack matrices, net.minecraft.client.render.VertexConsumerProvider consumers,
                            float tickDelta) {
-        if (boxes.isEmpty()) {
+        if (BytePhase.mc == null || lastWorld == null || BytePhase.mc.world != lastWorld || boxes.isEmpty()) {
             return;
         }
         int color = switch (mode.getValue()) {

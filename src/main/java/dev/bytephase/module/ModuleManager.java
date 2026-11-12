@@ -3,104 +3,34 @@ package dev.bytephase.module;
 import dev.bytephase.BytePhase;
 import dev.bytephase.module.combat.AimAssist;
 import dev.bytephase.module.combat.AutoArmor;
-import dev.bytephase.module.combat.AutoBowRelease;
-import dev.bytephase.module.combat.AutoCrystal;
 import dev.bytephase.module.combat.AutoClicker;
-import dev.bytephase.module.combat.AutoLog;
-import dev.bytephase.module.combat.AutoMine;
-import dev.bytephase.module.combat.AutoObsidian;
-import dev.bytephase.module.combat.AutoPot;
-import dev.bytephase.module.combat.AutoSoup;
 import dev.bytephase.module.combat.AutoTotem;
-import dev.bytephase.module.combat.AutoTrap;
 import dev.bytephase.module.combat.AutoWeapon;
-import dev.bytephase.module.combat.BowAimbot;
-import dev.bytephase.module.combat.Criticals;
-import dev.bytephase.module.combat.FeetTrap;
-import dev.bytephase.module.combat.HitBoxes;
-import dev.bytephase.module.combat.HoleFill;
-import dev.bytephase.module.combat.HoverTotem;
 import dev.bytephase.module.combat.JumpReset;
-import dev.bytephase.module.combat.KeepSprint;
-import dev.bytephase.module.combat.KeyPearl;
-import dev.bytephase.module.combat.KillAura;
-import dev.bytephase.module.combat.NoHitDelay;
-import dev.bytephase.module.combat.Reach;
-import dev.bytephase.module.combat.SelfFill;
-import dev.bytephase.module.combat.SelfTrap;
 import dev.bytephase.module.combat.SprintReset;
-import dev.bytephase.module.combat.Surround;
-import dev.bytephase.module.combat.ThrowPot;
-import dev.bytephase.module.combat.TriggerBot;
-import dev.bytephase.module.combat.Velocity;
 import dev.bytephase.module.combat.WTap;
 import dev.bytephase.module.misc.AntiPacketKick;
-import dev.bytephase.module.misc.AntiTrap;
 import dev.bytephase.module.misc.AntiVanish;
-import dev.bytephase.module.misc.FastUse;
 import dev.bytephase.module.misc.SlowSwing;
 import dev.bytephase.module.misc.AutoReconnect;
 import dev.bytephase.module.misc.CoordLogger;
 import dev.bytephase.module.misc.CoordSnapper;
-import dev.bytephase.module.misc.FastPlace;
 import dev.bytephase.module.misc.KillEffects;
-import dev.bytephase.module.combat.AutoAnchor;
-import dev.bytephase.module.combat.AutoExp;
-import dev.bytephase.module.combat.AutoLunge;
-import dev.bytephase.module.combat.AutoWindBurst;
-import dev.bytephase.module.combat.BreachSwap;
-import dev.bytephase.module.combat.ElytraMace;
-import dev.bytephase.module.combat.PearlCatch;
-import dev.bytephase.module.combat.WindChargeJump;
-import dev.bytephase.module.combat.SelfWeb;
-import dev.bytephase.module.combat.WebAura;
 import dev.bytephase.module.misc.AntiSpam;
 import dev.bytephase.module.misc.ChatFilter;
 import dev.bytephase.module.misc.Notifications;
 import dev.bytephase.module.misc.UnfocusedFps;
-import dev.bytephase.module.movement.Fireworks;
 import dev.bytephase.module.misc.NameProtect;
 import dev.bytephase.module.misc.PMSound;
 import dev.bytephase.module.misc.PacketLogger;
 import dev.bytephase.module.misc.VisualRange;
-import dev.bytephase.module.movement.AntiHunger;
-import dev.bytephase.module.movement.AntiLevitation;
-import dev.bytephase.module.movement.AntiVoid;
 import dev.bytephase.module.movement.AutoJump;
 import dev.bytephase.module.movement.AutoWalk;
-import dev.bytephase.module.movement.Blink;
-import dev.bytephase.module.movement.ClickTP;
-import dev.bytephase.module.movement.ElytraFly;
-import dev.bytephase.module.movement.ElytraBounce;
-import dev.bytephase.module.movement.EntityControl;
-import dev.bytephase.module.movement.EntitySpeed;
-import dev.bytephase.module.movement.FakeLag;
-import dev.bytephase.module.movement.FastAccel;
-import dev.bytephase.module.movement.FastFall;
-import dev.bytephase.module.movement.FastLadder;
-import dev.bytephase.module.movement.FastSwim;
-import dev.bytephase.module.movement.FastWeb;
-import dev.bytephase.module.movement.Fly;
-import dev.bytephase.module.movement.HighJump;
-import dev.bytephase.module.movement.IceSpeed;
 import dev.bytephase.module.movement.InventoryMove;
-import dev.bytephase.module.movement.Jesus;
-import dev.bytephase.module.movement.LongJump;
-import dev.bytephase.module.movement.NoFall;
-import dev.bytephase.module.movement.NoJumpDelay;
-import dev.bytephase.module.movement.NoSlow;
 import dev.bytephase.module.movement.Parkour;
-import dev.bytephase.module.movement.PearlPhase;
-import dev.bytephase.module.movement.ReverseStep;
 import dev.bytephase.module.movement.SafeWalk;
-import dev.bytephase.module.movement.Slippy;
 import dev.bytephase.module.movement.Sneak;
-import dev.bytephase.module.movement.Speed;
-import dev.bytephase.module.movement.Strafe;
-import dev.bytephase.module.movement.Spider;
 import dev.bytephase.module.movement.Sprint;
-import dev.bytephase.module.movement.Step;
-import dev.bytephase.module.movement.TickShift;
 import dev.bytephase.module.movement.Yaw;
 import dev.bytephase.module.player.AntiAfk;
 import dev.bytephase.module.player.AutoEat;
@@ -112,12 +42,8 @@ import dev.bytephase.module.player.AutoRespawn;
 import dev.bytephase.module.player.AutoTool;
 import dev.bytephase.module.player.ChestStealer;
 import dev.bytephase.module.player.ChestSwap;
-import dev.bytephase.module.player.MultiTask;
-import dev.bytephase.module.player.NoRotate;
 import dev.bytephase.module.player.Offhand;
 import dev.bytephase.module.player.RotationLock;
-import dev.bytephase.module.player.SpeedMine;
-import dev.bytephase.module.player.XCarry;
 import dev.bytephase.module.render.ArrayListView;
 import dev.bytephase.module.render.ArmorHud;
 import dev.bytephase.module.render.BetterChat;
@@ -160,9 +86,6 @@ import dev.bytephase.module.render.ViewModel;
 import dev.bytephase.module.render.Watermark;
 import dev.bytephase.module.render.UiSettings;
 import dev.bytephase.module.render.Zoom;
-import dev.bytephase.module.world.Nuker;
-import dev.bytephase.module.world.PacketMine;
-import dev.bytephase.module.world.Scaffold;
 import dev.bytephase.module.world.BaseFinder;
 import dev.bytephase.module.world.Navigator;
 import dev.bytephase.module.world.TunnelMiner;
@@ -240,11 +163,7 @@ public final class ModuleManager {
      * old path did a HashMap lookup for every bounding box, step-height query
      * and block slipperiness query even when the module was disabled.
      */
-    private volatile HitBoxes hitBoxes;
-    private volatile Step step;
-    private volatile Slippy slippy;
-    private volatile Reach reach;
-    private volatile SpeedMine speedMine;
+
     private volatile Zoom zoom;
     private volatile CustomFov customFov;
     private volatile NoRender noRender;
@@ -253,23 +172,16 @@ public final class ModuleManager {
     private volatile ArmorHud armorHud;
     private volatile Nametags nametags;
     private volatile PlayerEsp playerEsp;
-    private volatile NoSlow noSlow;
-    private volatile NoFall noFall;
-    private volatile NoJumpDelay noJumpDelay;
-    private volatile HighJump highJump;
-    private volatile LongJump longJump;
+
     private volatile SlowSwing slowSwing;
     private volatile WTap wTap;
     private volatile SafeWalk safeWalk;
-    private volatile FastPlace fastPlace;
-    private volatile FastUse fastUse;
-    private volatile MultiTask multiTask;
+
     private volatile AntiPacketKick antiPacketKick;
     private volatile PacketLogger packetLogger;
-    private volatile Velocity velocity;
-    private volatile NoRotate noRotate;
+
     private volatile LogoutSpots logoutSpots;
-    private volatile NoHitDelay noHitDelay;
+
     private volatile BreadCrumbs breadCrumbs;
     private volatile Skeleton skeleton;
     private volatile NoWeather noWeather;
@@ -280,85 +192,27 @@ public final class ModuleManager {
     private volatile ExtraTab extraTab;
     private volatile InventoryInfo inventoryInfo;
     private volatile BetterChat betterChat;
-    private volatile EntityControl entityControl;
-    private volatile IceSpeed iceSpeed;
 
     public void init() {
         // Combat
-        add(new KillAura());
-        add(new Reach());
-        add(new HitBoxes());
-        add(new Velocity());
         add(new AutoTotem());
         add(new AutoArmor());
-        add(new AutoCrystal());
-        add(new AutoObsidian());
-        add(new AutoMine());
-        add(new AutoTrap());
-        add(new Surround());
-        add(new TriggerBot());
-        add(new BowAimbot());
         add(new AimAssist());
         add(new AutoClicker());
-        add(new AutoBowRelease());
-        add(new KeyPearl());
-        add(new Criticals());
         add(new AutoWeapon());
-        add(new AutoLog());
         add(new JumpReset());
         add(new WTap());
-        add(new HoverTotem());
-        add(new AutoPot());
-        add(new ThrowPot());
-        add(new AutoSoup());
-        add(new FeetTrap());
-        add(new SelfFill());
-        add(new SelfTrap());
-        add(new HoleFill());
-        add(new KeepSprint());
         add(new SprintReset());
-        add(new NoHitDelay());
 
         // Movement
         add(new Sprint());
-        add(new Speed());
-        add(new FastAccel());
         // Redirect after Speed has adjusted the horizontal magnitude.
-        add(new Strafe());
-        add(new Fly());
-        add(new NoFall());
-        add(new AntiHunger());
-        add(new AntiLevitation());
-        add(new Jesus());
-        add(new LongJump());
-        add(new Step());
-        add(new ElytraFly());
-        add(new ElytraBounce());
-        add(new EntityControl());
-        add(new EntitySpeed());
-        add(new PearlPhase());
         add(new AutoWalk());
         add(new InventoryMove());
-        add(new NoJumpDelay());
-        add(new AntiVoid());
-        add(new FastLadder());
-        add(new FakeLag());
-        add(new FastSwim());
-        add(new FastWeb());
-        add(new HighJump());
-        add(new FastFall());
         add(new SafeWalk());
-        add(new NoSlow());
-        add(new Blink());
-        add(new ClickTP());
         add(new AutoJump());
-        add(new ReverseStep());
         add(new Parkour());
-        add(new Slippy());
-        add(new IceSpeed());
-        add(new Spider());
         add(new Sneak());
-        add(new TickShift());
         add(new Yaw());
 
         // Player
@@ -369,11 +223,7 @@ public final class ModuleManager {
         add(new AutoRespawn());
         add(new RotationLock());
         add(new AutoFish());
-        add(new MultiTask());
-        add(new XCarry());
         add(new ChestSwap());
-        add(new NoRotate());
-        add(new SpeedMine());
         add(new Offhand());
         add(new AutoReplenish());
         add(new HotbarArrange());
@@ -426,9 +276,6 @@ public final class ModuleManager {
         add(new UiSettings());
 
         // World
-        add(new Nuker());
-        add(new PacketMine());
-        add(new Scaffold());
         add(new TunnelMiner());
 
         // Explore
@@ -437,7 +284,6 @@ public final class ModuleManager {
         add(new CoordSnapper());
 
         // Misc
-        add(new FastPlace());
         add(new PacketLogger());
         add(new AutoReconnect());
         add(new VisualRange());
@@ -447,23 +293,10 @@ public final class ModuleManager {
         add(new AntiSpam());
         add(new UnfocusedFps());
         add(new Notifications());
-        add(new AutoExp());
-        add(new AutoAnchor());
-        add(new AutoLunge());
-        add(new BreachSwap());
-        add(new AutoWindBurst());
-        add(new ElytraMace());
-        add(new WindChargeJump());
-        add(new PearlCatch());
-        add(new WebAura());
-        add(new SelfWeb());
-        add(new Fireworks());
         add(new CoordLogger());
         add(new KillEffects());
         add(new AntiPacketKick());
-        add(new FastUse());
         add(new SlowSwing());
-        add(new AntiTrap());
         add(new AntiVanish());
 
         rebuildActiveModules();
@@ -473,10 +306,7 @@ public final class ModuleManager {
         modules.add(module);
         byClass.put(module.getClass(), module);
         byName.put(module.getName().toLowerCase(Locale.ROOT), module);
-        if (module instanceof SpeedMine) {
-            // Configs from earlier Bytephase builds called this module SpeedMine.
-            byName.put("speedmine", module);
-        }
+
         byCategory.computeIfAbsent(module.getCategory(), category -> new ArrayList<>()).add(module);
 
         if (overrides(module, "onRender2D", DrawContext.class, float.class)) {
@@ -535,12 +365,6 @@ public final class ModuleManager {
         List<Module> attack = new ArrayList<>();
         int snapshots = 0;
         boolean projection = false;
-
-        hitBoxes = null;
-        step = null;
-        slippy = null;
-        reach = null;
-        speedMine = null;
         zoom = null;
         customFov = null;
         noRender = null;
@@ -549,23 +373,12 @@ public final class ModuleManager {
         armorHud = null;
         nametags = null;
         playerEsp = null;
-        noSlow = null;
-        noFall = null;
-        noJumpDelay = null;
-        highJump = null;
-        longJump = null;
         slowSwing = null;
         wTap = null;
         safeWalk = null;
-        fastPlace = null;
-        fastUse = null;
-        multiTask = null;
         antiPacketKick = null;
         packetLogger = null;
-        velocity = null;
-        noRotate = null;
         logoutSpots = null;
-        noHitDelay = null;
         breadCrumbs = null;
         skeleton = null;
         noWeather = null;
@@ -576,129 +389,94 @@ public final class ModuleManager {
         extraTab = null;
         inventoryInfo = null;
         betterChat = null;
-        entityControl = null;
-        iceSpeed = null;
-
         for (Module module : modules) {
-            if (!module.isEnabled()) {
-                continue;
-            }
+            if (!module.isEnabled()) continue;
             enabled.add(module);
-            if (module instanceof HitBoxes value) {
-                hitBoxes = value;
-            } else if (module instanceof Step value) {
-                step = value;
-            } else if (module instanceof Slippy value) {
-                slippy = value;
-            } else if (module instanceof Reach value) {
-                reach = value;
-            } else if (module instanceof SpeedMine value) {
-                speedMine = value;
-            } else if (module instanceof Zoom value) {
+            if (module instanceof Zoom value) {
                 zoom = value;
-            } else if (module instanceof CustomFov value) {
+            }
+            else if (module instanceof CustomFov value) {
                 customFov = value;
-            } else if (module instanceof NoRender value) {
+            }
+            else if (module instanceof NoRender value) {
                 noRender = value;
-            } else if (module instanceof Crosshair value) {
+            }
+            else if (module instanceof Crosshair value) {
                 crosshair = value;
-            } else if (module instanceof SkyShaders value) {
+            }
+            else if (module instanceof SkyShaders value) {
                 skyShaders = value;
-            } else if (module instanceof ArmorHud value) {
+            }
+            else if (module instanceof ArmorHud value) {
                 armorHud = value;
-            } else if (module instanceof Nametags value) {
+            }
+            else if (module instanceof Nametags value) {
                 nametags = value;
-            } else if (module instanceof PlayerEsp value) {
+            }
+            else if (module instanceof PlayerEsp value) {
                 playerEsp = value;
-            } else if (module instanceof NoSlow value) {
-                noSlow = value;
-            } else if (module instanceof NoFall value) {
-                noFall = value;
-            } else if (module instanceof NoJumpDelay value) {
-                noJumpDelay = value;
-            } else if (module instanceof HighJump value) {
-                highJump = value;
-            } else if (module instanceof LongJump value) {
-                longJump = value;
-            } else if (module instanceof SlowSwing value) {
+            }
+            else if (module instanceof SlowSwing value) {
                 slowSwing = value;
-            } else if (module instanceof WTap value) {
+            }
+            else if (module instanceof WTap value) {
                 wTap = value;
-            } else if (module instanceof SafeWalk value) {
+            }
+            else if (module instanceof SafeWalk value) {
                 safeWalk = value;
-            } else if (module instanceof FastPlace value) {
-                fastPlace = value;
-            } else if (module instanceof FastUse value) {
-                fastUse = value;
-            } else if (module instanceof MultiTask value) {
-                multiTask = value;
-            } else if (module instanceof AntiPacketKick value) {
+            }
+            else if (module instanceof AntiPacketKick value) {
                 antiPacketKick = value;
-            } else if (module instanceof PacketLogger value) {
+            }
+            else if (module instanceof PacketLogger value) {
                 packetLogger = value;
-            } else if (module instanceof Velocity value) {
-                velocity = value;
-            } else if (module instanceof NoRotate value) {
-                noRotate = value;
-            } else if (module instanceof LogoutSpots value) {
+            }
+            else if (module instanceof LogoutSpots value) {
                 logoutSpots = value;
-            } else if (module instanceof NoHitDelay value) {
-                noHitDelay = value;
-            } else if (module instanceof BreadCrumbs value) {
+            }
+            else if (module instanceof BreadCrumbs value) {
                 breadCrumbs = value;
-            } else if (module instanceof Skeleton value) {
+            }
+            else if (module instanceof Skeleton value) {
                 skeleton = value;
-            } else if (module instanceof NoWeather value) {
+            }
+            else if (module instanceof NoWeather value) {
                 noWeather = value;
-            } else if (module instanceof OldPotions value) {
+            }
+            else if (module instanceof OldPotions value) {
                 oldPotions = value;
-            } else if (module instanceof ViewClip value) {
+            }
+            else if (module instanceof ViewClip value) {
                 viewClip = value;
-            } else if (module instanceof SmallShield value) {
+            }
+            else if (module instanceof SmallShield value) {
                 smallShield = value;
-            } else if (module instanceof ViewModel value) {
+            }
+            else if (module instanceof ViewModel value) {
                 viewModel = value;
-            } else if (module instanceof ExtraTab value) {
+            }
+            else if (module instanceof ExtraTab value) {
                 extraTab = value;
-            } else if (module instanceof InventoryInfo value) {
+            }
+            else if (module instanceof InventoryInfo value) {
                 inventoryInfo = value;
-            } else if (module instanceof BetterChat value) {
+            }
+            else if (module instanceof BetterChat value) {
                 betterChat = value;
-            } else if (module instanceof EntityControl value) {
-                entityControl = value;
-            } else if (module instanceof IceSpeed value) {
-                iceSpeed = value;
             }
-            if (hudRenderers.contains(module)) {
-                hud.add(module);
-            }
-            if (frameHandlers.contains(module)) {
-                frame.add(module);
-            }
+            if (hudRenderers.contains(module)) hud.add(module);
+            if (frameHandlers.contains(module)) frame.add(module);
+            if (packetSenders.contains(module)) send.add(module);
+            if (packetReceivers.contains(module)) receive.add(module);
+            if (beforeAttackHandlers.contains(module)) beforeAttack.add(module);
+            if (attackHandlers.contains(module)) attack.add(module);
             if (worldRenderers.contains(module)) {
                 world.add(module);
                 projection = true;
             }
-            if (module.usesProjection()) {
-                projection = true;
-            }
-            if (packetSenders.contains(module)) {
-                send.add(module);
-            }
-            if (packetReceivers.contains(module)) {
-                receive.add(module);
-            }
-            if (beforeAttackHandlers.contains(module)) {
-                beforeAttack.add(module);
-            }
-            if (attackHandlers.contains(module)) {
-                attack.add(module);
-            }
-            if (module.usesEntitySnapshot()) {
-                snapshots++;
-            }
+            if (module.usesProjection()) projection = true;
+            if (module.usesEntitySnapshot()) snapshots++;
         }
-
         enabledModules = List.copyOf(enabled);
         activeHud = List.copyOf(hud);
         activeWorld = List.copyOf(world);
@@ -709,195 +487,70 @@ public final class ModuleManager {
         activeAttack = List.copyOf(attack);
         snapshotConsumers = snapshots;
         projectionNeeded = projection || skyShaders != null;
-        if (snapshots == 0) {
-            EntitySnapshot.clear();
-        }
+        if (snapshots == 0) EntitySnapshot.clear();
     }
 
     public List<Module> byCategory(Category category) {
         return byCategory.getOrDefault(category, List.of());
     }
 
-    public List<Module> enabled() {
-        return enabledModules;
-    }
+    public List<Module> enabled() { return enabledModules; }
 
-    public <T extends Module> T get(Class<T> type) {
-        return type.cast(byClass.get(type));
-    }
+    public <T extends Module> T get(Class<T> type) { return type.cast(byClass.get(type)); }
 
     public Module getByName(String name) {
-        return byName.get(name.toLowerCase(Locale.ROOT));
+        return name == null ? null : byName.get(name.toLowerCase(Locale.ROOT));
     }
 
-    public HitBoxes hitBoxes() {
-        return hitBoxes;
-    }
+    public Zoom zoom() { return zoom; }
 
-    public Step step() {
-        return step;
-    }
+    public CustomFov customFov() { return customFov; }
 
-    public Slippy slippy() {
-        return slippy;
-    }
+    public NoRender noRender() { return noRender; }
 
-    public Reach reach() {
-        return reach;
-    }
+    public Crosshair crosshair() { return crosshair; }
 
-    public SpeedMine speedMine() {
-        return speedMine;
-    }
+    public SkyShaders skyShaders() { return skyShaders; }
 
-    public Zoom zoom() {
-        return zoom;
-    }
+    public ArmorHud armorHud() { return armorHud; }
 
-    public CustomFov customFov() {
-        return customFov;
-    }
+    public Nametags nametags() { return nametags; }
 
-    public NoRender noRender() {
-        return noRender;
-    }
+    public PlayerEsp playerEsp() { return playerEsp; }
 
-    public Crosshair crosshair() {
-        return crosshair;
-    }
+    public SlowSwing slowSwing() { return slowSwing; }
 
-    public ArmorHud armorHud() {
-        return armorHud;
-    }
+    public WTap wTap() { return wTap; }
 
-    public Nametags nametags() {
-        return nametags;
-    }
+    public SafeWalk safeWalk() { return safeWalk; }
 
-    public PlayerEsp playerEsp() {
-        return playerEsp;
-    }
+    public AntiPacketKick antiPacketKick() { return antiPacketKick; }
 
-    public NoSlow noSlow() {
-        return noSlow;
-    }
+    public PacketLogger packetLogger() { return packetLogger; }
 
-    public NoFall noFall() {
-        return noFall;
-    }
+    public LogoutSpots logoutSpots() { return logoutSpots; }
 
-    public NoJumpDelay noJumpDelay() {
-        return noJumpDelay;
-    }
+    public BreadCrumbs breadCrumbs() { return breadCrumbs; }
 
-    public HighJump highJump() {
-        return highJump;
-    }
+    public Skeleton skeleton() { return skeleton; }
 
-    public LongJump longJump() {
-        return longJump;
-    }
+    public NoWeather noWeather() { return noWeather; }
 
-    public SlowSwing slowSwing() {
-        return slowSwing;
-    }
+    public OldPotions oldPotions() { return oldPotions; }
 
-    public WTap wTap() {
-        return wTap;
-    }
+    public ViewClip viewClip() { return viewClip; }
 
-    public SafeWalk safeWalk() {
-        return safeWalk;
-    }
+    public SmallShield smallShield() { return smallShield; }
 
-    public FastPlace fastPlace() {
-        return fastPlace;
-    }
+    public ViewModel viewModel() { return viewModel; }
 
-    public FastUse fastUse() {
-        return fastUse;
-    }
+    public ExtraTab extraTab() { return extraTab; }
 
-    public MultiTask multiTask() {
-        return multiTask;
-    }
+    public InventoryInfo inventoryInfo() { return inventoryInfo; }
 
-    public AntiPacketKick antiPacketKick() {
-        return antiPacketKick;
-    }
+    public BetterChat betterChat() { return betterChat; }
 
-    public PacketLogger packetLogger() {
-        return packetLogger;
-    }
-
-    public Velocity velocity() {
-        return velocity;
-    }
-
-    public NoRotate noRotate() {
-        return noRotate;
-    }
-
-    public LogoutSpots logoutSpots() {
-        return logoutSpots;
-    }
-
-    public NoHitDelay noHitDelay() {
-        return noHitDelay;
-    }
-
-    public BreadCrumbs breadCrumbs() {
-        return breadCrumbs;
-    }
-
-    public Skeleton skeleton() {
-        return skeleton;
-    }
-
-    public NoWeather noWeather() {
-        return noWeather;
-    }
-
-    public OldPotions oldPotions() {
-        return oldPotions;
-    }
-
-    public ViewClip viewClip() {
-        return viewClip;
-    }
-
-    public SmallShield smallShield() {
-        return smallShield;
-    }
-
-    public ViewModel viewModel() {
-        return viewModel;
-    }
-
-    public ExtraTab extraTab() {
-        return extraTab;
-    }
-
-    public InventoryInfo inventoryInfo() {
-        return inventoryInfo;
-    }
-
-    public BetterChat betterChat() {
-        return betterChat;
-    }
-
-    public EntityControl entityControl() {
-        return entityControl;
-    }
-
-    public IceSpeed iceSpeed() {
-        return iceSpeed;
-    }
-
-    /** Whether any enabled module needs world matrices or projected HUD text. */
-    public boolean needsProjection() {
-        return projectionNeeded;
-    }
+    public boolean needsProjection() { return projectionNeeded; }
 
     /** Runs the sky shader pass at {@code START_MAIN}, after vanilla sky. */
     public void renderSky() {
@@ -943,6 +596,9 @@ public final class ModuleManager {
             return;
         }
         for (Module module : active) {
+            if (!module.isEnabled()) {
+                continue;
+            }
             try {
                 module.onRender2D(context, tickDelta);
             } catch (Exception e) {
@@ -973,6 +629,9 @@ public final class ModuleManager {
         RenderBox.beginFrame(matrices, consumers);
         try {
             for (Module module : active) {
+                if (!module.isEnabled()) {
+                    continue;
+                }
                 try {
                     module.onRender3D(matrices, consumers, tickDelta);
                 } catch (Exception e) {
@@ -986,8 +645,11 @@ public final class ModuleManager {
             // module walk. Do not touch the shader renderer at all for plain
             // box styles; class-loading it compiles all supplied programs.
             if (EspRenderer.hasQueuedShader()) {
-                ClarityEspRenderer.flush();
-                EspRenderer.clearQueuedShader();
+                try {
+                    ClarityEspRenderer.flush();
+                } finally {
+                    EspRenderer.clearQueuedShader();
+                }
             }
         }
     }
@@ -1004,6 +666,9 @@ public final class ModuleManager {
             return;
         }
         for (Module module : active) {
+            if (!module.isEnabled()) {
+                continue;
+            }
             try {
                 module.onBeforeAttack(self, target);
             } catch (Exception e) {
@@ -1023,6 +688,9 @@ public final class ModuleManager {
             return;
         }
         for (Module module : active) {
+            if (!module.isEnabled()) {
+                continue;
+            }
             try {
                 module.onAttack(self, target);
             } catch (Exception e) {
@@ -1032,8 +700,7 @@ public final class ModuleManager {
     }
 
     public void serverCorrection() {
-        dev.bytephase.util.SilentRotation.clear();
-        dev.bytephase.util.ServerFacing.reset();
+        dev.bytephase.util.CameraAim.release();
         // Corrections are rare; no extra dispatch list or per-packet work is needed.
         for (Module module : enabledModules) {
             if (!module.isEnabled()) {
@@ -1047,26 +714,15 @@ public final class ModuleManager {
         }
     }
 
-    public void vanillaCombatTick() {
-        KillAura aura = get(KillAura.class);
-        AutoCrystal crystal = get(AutoCrystal.class);
-        boolean auraActive = aura != null && aura.isEnabled() && aura.usesVanillaPackets();
-        boolean crystalActive = crystal != null && crystal.isEnabled() && crystal.usesVanillaPackets();
-        dev.bytephase.util.ServerFacing.startTick(auraActive || crystalActive);
-        if (crystalActive) {
-            try { crystal.onPreTick(); } catch (Exception e) { report(crystal, "vanilla combat", e); }
-        } else if (auraActive) {
-            // One camera owner: enabled native crystal combat takes priority.
-            try { aura.onPreTick(); } catch (Exception e) { report(aura, "vanilla combat", e); }
-        }
-    }
-
     public boolean packetSend(Packet<?> packet) {
         List<Module> active = activePacketSenders;
         if (active.isEmpty()) {
             return false;
         }
         for (Module module : active) {
+            if (!module.isEnabled()) {
+                continue;
+            }
             try {
                 if (module.onPacketSend(packet)) {
                     return true;
@@ -1084,6 +740,9 @@ public final class ModuleManager {
             return false;
         }
         for (Module module : active) {
+            if (!module.isEnabled()) {
+                continue;
+            }
             try {
                 if (module.onPacketReceive(packet)) {
                     return true;

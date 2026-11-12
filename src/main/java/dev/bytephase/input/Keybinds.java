@@ -108,8 +108,6 @@ public final class Keybinds {
         for (Map.Entry<Module, KeyBinding> entry : BINDINGS.entrySet()) {
             while (entry.getValue().wasPressed()) {
                 Module module = entry.getKey();
-                if (module instanceof dev.bytephase.module.combat.Surround surround
-                        && surround.activateFromKey()) continue;
                 module.toggle();
             }
         }

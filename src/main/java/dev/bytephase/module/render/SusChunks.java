@@ -9,6 +9,7 @@ import dev.bytephase.setting.BooleanSetting;
 import dev.bytephase.setting.ColorSetting;
 import dev.bytephase.setting.ModeSetting;
 import dev.bytephase.setting.NumberSetting;
+import dev.bytephase.util.DiscoverySignals;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -18,6 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.BitSet;
 import net.minecraft.block.AmethystClusterBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -34,6 +37,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Direction;
 import net.minecraft.text.Text;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.EmptyChunk;
@@ -47,11 +51,12 @@ import net.minecraft.world.chunk.WorldChunk;
 public final class SusChunks extends Module {
     private static final long SCAN_BUDGET_NANOS = 1_500_000L;
     private static final int RESCAN_TICKS = 400;
-    private static final java.util.function.Predicate<BlockState> IS_EVIDENCE =
-            state -> state.isOf(Blocks.BUDDING_AMETHYST) || isGrowth(state);
     private static final int MAX_CHUNKS = 289;
     private static final int MAX_ALERTS = 128;
     private static final int MAX_ALERT_HISTORY = 512;
+    private static final Direction[] HORIZONTAL = {
+            Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST
+    };
     private static final long CHUNK_TIMEOUT_NANOS = 120_000_000_000L;
 
     private static final class Suspect {
@@ -74,9 +79,19 @@ public final class SusChunks extends Module {
 
     private final NumberSetting range = add(new NumberSetting("Range", 4.0, 1.0, 8.0, 1.0));
     private final ModeSetting signal = add(new ModeSetting("Signal",
-            new String[]{"Growth", "Geode"}, "Growth"));
+            new String[]{"Growth", "Geode", "WeightedGrowth", "Activity"}, "Growth"));
     private final NumberSetting minBudding = add(new NumberSetting("MinBudding", 6.0, 1.0, 64.0, 1.0));
     private final NumberSetting minGrowth = add(new NumberSetting("MinGrowth", 6.0, 1.0, 64.0, 1.0));
+    private final NumberSetting minActivity = add(new NumberSetting("MinActivity", 4, 1, 128, 1));
+    private final BooleanSetting kelp = add(new BooleanSetting("Kelp", false));
+    private final BooleanSetting caveVines = add(new BooleanSetting("CaveVines", false));
+    private final BooleanSetting vines = add(new BooleanSetting("Vines", false));
+    private final BooleanSetting bamboo = add(new BooleanSetting("Bamboo", false));
+    private final BooleanSetting beeNests = add(new BooleanSetting("BeeNests", false));
+    private final BooleanSetting cocoa = add(new BooleanSetting("Cocoa", false));
+    private final BooleanSetting rotatedDeepslate = add(new BooleanSetting("RotatedDeepslate", false));
+    private final BooleanSetting verticalTunnels = add(new BooleanSetting("VerticalTunnels", false));
+    private final NumberSetting minTunnelLength = add(new NumberSetting("MinTunnelLength", 7, 3, 40, 1));
     private final BooleanSetting logFinds = add(new BooleanSetting("LogFinds", true));
     private final BooleanSetting announce = add(new BooleanSetting("ChatAnnounce", true));
     private final BooleanSetting tracers = add(new BooleanSetting("Tracers", false));
@@ -90,21 +105,35 @@ public final class SusChunks extends Module {
         final ChunkSection[] sections;
         final long revision;
         final boolean geode;
+        final boolean activityMode;
+        final boolean weighted;
+        final DiscoverySignals.Options options;
+        final boolean tunnels;
+        final int tunnelLength;
         final Map<Long, WorldChunk> neighbors = new HashMap<>();
+        final int[] shaftRuns = new int[256];
+        final BitSet shaftCounted = new BitSet(256);
         int nextSection;
         int nextBlock;
         boolean paletteChecked;
         int budding;
         int growth;
+        int activity;
         int minY = Integer.MAX_VALUE;
         int maxY = Integer.MIN_VALUE;
         BlockPos evidence;
 
-        Scan(WorldChunk chunk, long revision, boolean geode) {
+        Scan(WorldChunk chunk, long revision, String mode, DiscoverySignals.Options options,
+             boolean tunnels, int tunnelLength) {
             this.chunk = chunk;
             this.sections = chunk.getSectionArray().clone();
             this.revision = revision;
-            this.geode = geode;
+            this.geode = mode.equals("Geode");
+            this.activityMode = mode.equals("Activity");
+            this.weighted = mode.equals("WeightedGrowth");
+            this.options = options;
+            this.tunnels = tunnels && activityMode;
+            this.tunnelLength = tunnelLength;
         }
     }
 
@@ -124,7 +153,8 @@ public final class SusChunks extends Module {
     private final Set<Long> changed = new HashSet<>();
     private ChunkPos trackedOrigin;
     private int trackedRange;
-    private long nextRevision;
+    private volatile long nextRevision;
+    private long renderRevision;
 
     private ChunkPos scanOrigin;
     private int scanRange = -1;
@@ -134,7 +164,7 @@ public final class SusChunks extends Module {
     private int announceCooldown;
 
     public SusChunks() {
-        super("SusChunks", Category.EXPLORE, "Finds amethyst growth or geode candidates in loaded chunks");
+        super("SusChunks", Category.EXPLORE, "Finds amethyst, plant-growth and construction signals in loaded chunks");
     }
 
     @Override
@@ -188,7 +218,8 @@ public final class SusChunks extends Module {
             lastWorld = mc.world;
         }
         String currentSettings = signal.getValue() + ":" + minBudding.asInt() + ":" + minGrowth.asInt()
-                + ":" + logFinds.getValue();
+                + ":" + logFinds.getValue() + ":" + minActivity.asInt() + ":" + options()
+                + ":" + verticalTunnels.getValue() + ":" + minTunnelLength.asInt();
         if (!currentSettings.equals(lastSettings)) {
             resetScan();
             alerts.clear();
@@ -246,7 +277,8 @@ public final class SusChunks extends Module {
         }
 
         Scan scan = scans.computeIfAbsent(key,
-                ignored -> new Scan(chunk, revision(key), signal.getValue().equals("Geode")));
+                ignored -> new Scan(chunk, revision(key), signal.getValue(), options(),
+                        verticalTunnels.getValue(), minTunnelLength.asInt()));
         if (!valid(key, scan)) {
             suspects.remove(key);
             deferred.add(key);
@@ -259,7 +291,8 @@ public final class SusChunks extends Module {
             int sectionIndex = scan.nextSection;
             if (!scan.paletteChecked) {
                 if (section == null || section.isEmpty() || !section.hasAny(
-                        state -> System.nanoTime() >= deadline || IS_EVIDENCE.test(state))) {
+                        state -> System.nanoTime() >= deadline || evidence(state, scan))) {
+                    Arrays.fill(scan.shaftRuns, 0);
                     nextSection(scan);
                     continue;
                 }
@@ -299,13 +332,32 @@ public final class SusChunks extends Module {
             BlockState state = section.getBlockState(x, y, z);
             boolean budding = state.isOf(Blocks.BUDDING_AMETHYST);
             BlockPos pos = null;
-            if (budding || isGrowth(state)) {
+            if (budding || isGrowth(state) || scan.activityMode && (DiscoverySignals.enabled(state, scan.options) || scan.tunnels)) {
                 pos = new BlockPos(chunk.getPos().x * 16 + x, sectionY + y, chunk.getPos().z * 16 + z);
             }
-            boolean growth = !scan.geode && isGrowth(state) && attachedToBudding(state, pos, scan);
+            boolean growth = !scan.geode && !scan.activityMode && isGrowth(state) && attachedToBudding(state, pos, scan);
             if (budding) scan.budding++;
-            if (growth) scan.growth++;
-            if (scan.geode ? budding : growth) {
+            if (growth) scan.growth += scan.weighted ? DiscoverySignals.growthWeight(state) : 1;
+            int activity = 0;
+            if (scan.activityMode && DiscoverySignals.enabled(state, scan.options)) {
+                boolean needsNeighbors = state.isOf(Blocks.KELP) || state.isOf(Blocks.CAVE_VINES)
+                        || state.isOf(Blocks.VINE) || state.isOf(Blocks.BAMBOO);
+                activity = DiscoverySignals.activity(state, needsNeighbors ? neighborState(pos.up(), scan) : null,
+                        needsNeighbors ? neighborState(pos.down(), scan) : null, scan.options);
+            }
+            if (scan.tunnels) {
+                int column = x * 16 + z;
+                if (state.isAir() && enclosed(pos, scan)) {
+                    if (++scan.shaftRuns[column] >= scan.tunnelLength && !scan.shaftCounted.get(column)) {
+                        scan.shaftCounted.set(column);
+                        activity++;
+                    }
+                } else {
+                    scan.shaftRuns[column] = 0;
+                }
+            }
+            scan.activity += activity;
+            if (scan.activityMode ? activity > 0 : scan.geode ? budding : growth) {
                 int worldY = sectionY + y;
                 scan.minY = Math.min(scan.minY, worldY);
                 scan.maxY = Math.max(scan.maxY, worldY);
@@ -322,6 +374,12 @@ public final class SusChunks extends Module {
 
     private boolean attachedToBudding(BlockState state, BlockPos pos, Scan scan) {
         BlockPos neighbor = pos.offset(state.get(AmethystClusterBlock.FACING).getOpposite());
+        BlockState support = neighborState(neighbor, scan);
+        return support != null && support.isOf(Blocks.BUDDING_AMETHYST);
+    }
+
+    private BlockState neighborState(BlockPos neighbor, Scan scan) {
+        if (lastWorld.isOutOfHeightLimit(neighbor)) return null;
         long key = ChunkPos.toLong(neighbor.getX() >> 4, neighbor.getZ() >> 4);
         WorldChunk chunk;
         if (key == scan.chunk.getPos().toLong()) {
@@ -330,11 +388,30 @@ public final class SusChunks extends Module {
             if (!scan.neighbors.containsKey(key)) scan.neighbors.put(key, loadedChunk(key));
             chunk = scan.neighbors.get(key);
         }
-        return chunk != null && chunk.getBlockState(neighbor).isOf(Blocks.BUDDING_AMETHYST);
+        return chunk == null ? null : chunk.getBlockState(neighbor);
+    }
+
+    private boolean enclosed(BlockPos pos, Scan scan) {
+        for (Direction direction : HORIZONTAL) {
+            BlockPos neighbor = pos.offset(direction);
+            BlockState state = neighborState(neighbor, scan);
+            if (state == null || !state.getFluidState().isEmpty() || !state.isFullCube(lastWorld, neighbor)) return false;
+        }
+        return true;
+    }
+
+    private DiscoverySignals.Options options() {
+        return new DiscoverySignals.Options(kelp.getValue(), caveVines.getValue(), vines.getValue(),
+                bamboo.getValue(), beeNests.getValue(), cocoa.getValue(), rotatedDeepslate.getValue());
+    }
+
+    private static boolean evidence(BlockState state, Scan scan) {
+        return scan.activityMode ? DiscoverySignals.enabled(state, scan.options) || scan.tunnels && state.isAir()
+                : state.isOf(Blocks.BUDDING_AMETHYST) || isGrowth(state);
     }
 
     private boolean qualifies(Scan scan) {
-        return scan.geode ? scan.budding >= minBudding.asInt()
+        return scan.activityMode ? scan.activity >= minActivity.asInt() : scan.geode ? scan.budding >= minBudding.asInt()
                 : scan.growth >= minGrowth.asInt();
     }
 
@@ -342,13 +419,15 @@ public final class SusChunks extends Module {
         if (qualifies(scan) && scan.evidence != null) {
             suspects.put(key, new Suspect(scan.chunk, scan.revision, scan.minY, scan.maxY, System.nanoTime()));
             BlockPos pos = scan.evidence;
-            String label = scan.geode ? "Geode (" + scan.budding + " budding)"
+            String label = scan.activityMode ? "Activity (" + scan.activity + " signals)"
+                    : scan.geode ? "Geode (" + scan.budding + " budding)"
+                    : scan.weighted ? "Amethyst growth (" + scan.growth + " weighted)"
                     : "Amethyst growth (" + scan.growth + ")";
             boolean recorded = false;
             if (logFinds.getValue() && BytePhase.locations != null) {
-                recorded = BytePhase.locations.remember("geode", label, pos);
+                recorded = BytePhase.locations.remember(scan.activityMode ? "activity" : "geode", label, pos);
             }
-            int mode = scan.geode ? 2 : 1;
+            int mode = scan.activityMode ? 8 : scan.weighted ? 4 : scan.geode ? 2 : 1;
             int previous = alertHistory.getOrDefault(key, 0);
             if (announce.getValue() && (previous & mode) == 0 && (!logFinds.getValue() || recorded)) {
                 if (alerts.size() >= MAX_ALERTS) alerts.poll();
@@ -397,18 +476,21 @@ public final class SusChunks extends Module {
     }
 
     private void rebuildRenderCache(long now) {
-        boxes.clear();
-        centers.clear();
-        suspects.entrySet().removeIf(entry -> now - entry.getValue().since > CHUNK_TIMEOUT_NANOS
-                || loadedChunk(entry.getKey()) != entry.getValue().chunk
-                || !unchanged(entry.getKey(), entry.getValue().revision)
-                || scanOrigin == null
-                || Math.abs((long) ChunkPos.getPackedX(entry.getKey()) - scanOrigin.x) > scanRange
-                || Math.abs((long) ChunkPos.getPackedZ(entry.getKey()) - scanOrigin.z) > scanRange);
-        for (Map.Entry<Long, Suspect> entry : suspects.entrySet()) {
-            Suspect suspect = entry.getValue();
-            boxes.add(suspect.box);
-            centers.add(suspect.center);
+        synchronized (changeLock) {
+            boxes.clear();
+            centers.clear();
+            suspects.entrySet().removeIf(entry -> now - entry.getValue().since > CHUNK_TIMEOUT_NANOS
+                    || loadedChunk(entry.getKey()) != entry.getValue().chunk
+                    || !unchanged(entry.getKey(), entry.getValue().revision)
+                    || scanOrigin == null
+                    || Math.abs((long) ChunkPos.getPackedX(entry.getKey()) - scanOrigin.x) > scanRange
+                    || Math.abs((long) ChunkPos.getPackedZ(entry.getKey()) - scanOrigin.z) > scanRange);
+            for (Map.Entry<Long, Suspect> entry : suspects.entrySet()) {
+                Suspect suspect = entry.getValue();
+                boxes.add(suspect.box);
+                centers.add(suspect.center);
+            }
+            renderRevision = nextRevision;
         }
     }
 
@@ -546,7 +628,7 @@ public final class SusChunks extends Module {
                            net.minecraft.client.render.VertexConsumerProvider consumers,
                            float tickDelta) {
         if (lastWorld == null || BytePhase.mc.world != lastWorld) return;
-        rebuildRenderCache(System.nanoTime());
+        if (renderRevision != nextRevision) rebuildRenderCache(System.nanoTime());
         if (boxes.isEmpty()) return;
         EspRenderer.drawBoxes(boxes, color.getValue(), style.getValue(), throughWalls.getValue());
         if (tracers.getValue()) {

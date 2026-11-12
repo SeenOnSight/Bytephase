@@ -64,9 +64,6 @@ public final class AutoArmor extends Module {
 
     @Override
     public void onTick() {
-        if (ElytraMace.isBusy()) {
-            return;
-        }
         var mc = BytePhase.mc;
         if (mc == null || mc.player == null || mc.interactionManager == null) {
             return;

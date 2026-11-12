@@ -230,7 +230,7 @@ public final class PlayerEsp extends Module {
             // Build the AABB from the entity's current pose dimensions at its
             // interpolated render position. This is the same interpolation
             // vanilla uses for EntityRenderState.x/y/z, and avoids coupling
-            // the visual box to getBoundingBox() (which HitBoxes expands).
+            // the visual box to any external targeting-box changes.
             // The 2 cm margin only stops filled faces z-fighting with entity
             // models that touch their own AABB.
             Box box = entity.getDimensions(entity.getPose())

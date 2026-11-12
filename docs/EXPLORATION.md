@@ -96,9 +96,15 @@ Source: [SusChunks.java](../src/main/java/dev/bytephase/module/render/SusChunks.
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `Range` | `4` | Chunk radius, from 1 to 8 |
-| `Signal` | `Growth` | Choose attached growth or geode presence |
-| `MinGrowth` | `6` | Attached growth count required in Growth mode |
+| `Signal` | `Growth` | `Growth`, `Geode`, `WeightedGrowth` or `Activity` |
+| `MinGrowth` | `6` | Attached growth count or maturity score required |
 | `MinBudding` | `6` | Budding-block count required in Geode mode |
+| `MinActivity` | `4` | Required activity signals per chunk |
+| `Kelp`, `CaveVines`, `Vines`, `Bamboo` | Off | Optional plant-growth checks in Activity mode |
+| `BeeNests`, `Cocoa` | Off | Optional full-honey nests and mature cocoa |
+| `RotatedDeepslate` | Off | Optional nonvertical deepslate axes |
+| `VerticalTunnels` | Off | Optional enclosed vertical air columns |
+| `MinTunnelLength` | `7` | Consecutive enclosed cells required for a shaft |
 | `LogFinds` | On | Save candidates to local findings |
 | `ChatAnnounce` | On | Show local discovery messages |
 | `Tracers` | Off | Draw lines to live candidate markers |
@@ -110,11 +116,21 @@ Source: [SusChunks.java](../src/main/java/dev/bytephase/module/render/SusChunks.
   whose facing points back to a budding-amethyst support block. A support
   across a chunk boundary must also be loaded.
 - **Geode** counts budding-amethyst blocks, regardless of attached growth.
+- **WeightedGrowth** counts attached small/medium/large buds and clusters as
+  1/2/3/4 maturity points. `MinGrowth` applies to the total score.
+- **Activity** counts enabled plant-growth and construction signals. Kelp
+  checks a growing tip beneath water; cave vines check a growing tip above
+  air; vines and mature bamboo check their exposed tips. Mature cocoa and
+  honey-level-5 bee nests count as separate signals. Rotated deepslate requires
+  an X or Z axis. Shaft detection requires consecutive air cells enclosed on
+  all four horizontal sides by solid, fluid-free loaded blocks. Each shaft
+  column counts once, and an open cave wall breaks the run.
 
 These signals describe visible block state, not chunk age, player presence or
-an observed growth history. Natural geodes can satisfy either threshold.
-Both modes save the `geode` finding kind, with a label identifying the signal
-and count.
+an observed growth history. Natural growth, mature plants and natural caves
+can produce candidates. All activity checks are off by default and must be
+selected explicitly. Amethyst modes save the `geode` finding kind; Activity
+saves `activity`, with a label identifying the signal count.
 
 Markers span the evidence's vertical range within each chunk. The HUD suffix
 shows the live candidate count. An idle rescan is scheduled after 400 ticks;
@@ -186,12 +202,11 @@ cardinal direction, hold a suitable tool and enable the module.
 The heading and floor height are captured on the first eligible tick.
 Even widths extend one block farther to the right. Mining turns the visible
 camera toward a reachable block and requires the crosshair raycast to hit
-that block. It uses vanilla breaking progress and can cooperate with enabled
-`PacketMine` without restarting its acknowledgement wait.
+that block. It uses normal attack input and vanilla breaking progress.
 
 Mining pauses for screens, lost window focus, item use, another camera,
-unloaded corridor cells or a change in floor height. It yields to enabled
-`AutoMine` and `Nuker`, and avoids taking over unrelated mining.
+unloaded corridor cells or a change in floor height. It avoids taking over
+unrelated mining.
 
 Targets exclude block entities, fluids, unbreakable blocks, restricted
 blocks and blocks the held item cannot mine. Adjacent fluid or an unloaded
@@ -229,8 +244,7 @@ Each eligible cycle performs at most one vanilla `SWAP`. `Delay` defaults to
 the food component. It does not rank tools by enchantment or durability.
 
 It pauses while a screen is open, the cursor is occupied, an item is in use,
-attack/use is held, a block is being mined or the player is hurt. Active
-silent rotation, busy `ElytraMace`, `Blink` and `FakeLag` also pause it.
+attack/use is held, a block is being mined or the player is hurt.
 Inventory and interaction packets create a short quiet period, and server
 corrections add backoff.
 

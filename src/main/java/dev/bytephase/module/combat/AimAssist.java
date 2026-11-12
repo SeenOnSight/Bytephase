@@ -21,7 +21,7 @@ import net.minecraft.util.math.Vec3d;
  * stepping twenty times a second.</p>
  */
 public final class AimAssist extends Module {
-    private final NumberSetting range = add(new NumberSetting("Range", 8.0, 3.0, 40.0, 0.5));
+    private final NumberSetting range = add(new NumberSetting("Range", 3.0, 1.0, 40.0, 0.5));
     private final NumberSetting speed = add(new NumberSetting("Speed", 25.0, 1.0, 120.0, 1.0));
     private final NumberSetting smoothing = add(new NumberSetting("Smoothing", 65.0, 0.0, 100.0, 5.0));
     private final BooleanSetting humanize = add(new BooleanSetting("Humanize", true));
@@ -40,16 +40,18 @@ public final class AimAssist extends Module {
     @Override
     public void onTick() {
         var mc = BytePhase.mc;
-        if (mc == null || mc.player == null || mc.world == null || mc.currentScreen != null) {
+        if (mc == null || mc.player == null || mc.world == null || mc.currentScreen != null
+                || !mc.isWindowFocused() || !mc.options.attackKey.isPressed()) {
             CameraAim.release();
             return;
         }
-        float maxRangeSq = range.asFloat() * range.asFloat();
+        double effectiveRange = Math.min(range.getValue(), mc.player.getEntityInteractionRange());
+        double maxRangeSq = effectiveRange * effectiveRange;
         Vec3d look = mc.player.getRotationVector();
         LivingEntity best = null;
         double bestDistSq = Double.MAX_VALUE;
         for (Entity entity : mc.world.getOtherEntities(mc.player,
-                mc.player.getBoundingBox().expand(range.getValue()))) {
+                mc.player.getBoundingBox().expand(effectiveRange))) {
             if (entity == mc.player || !entity.isAlive() || !(entity instanceof LivingEntity living)) {
                 continue;
             }

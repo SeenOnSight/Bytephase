@@ -5,7 +5,6 @@ import dev.bytephase.input.KeyOverride;
 import dev.bytephase.mixin.ClientPlayerInteractionManagerAccessor;
 import dev.bytephase.module.Category;
 import dev.bytephase.module.Module;
-import dev.bytephase.module.combat.AutoMine;
 import dev.bytephase.setting.BooleanSetting;
 import dev.bytephase.setting.NumberSetting;
 import dev.bytephase.util.BlockReachUtil;
@@ -97,20 +96,12 @@ public final class TunnelMiner extends Module {
             floorY = mc.player.getBlockY();
             return;
         }
-        if (priorityMiner()) {
-            // Another miner may already have acquired the same position this tick.
-            // Do not cancel shared vanilla or PacketMine state after yielding.
-            target = null;
-            return;
-        }
         if (Math.abs(mc.player.getY() - floorY) > 0.01 || !loadedCorridor()) {
             stop();
             return;
         }
-        PacketMine packet = packetMine();
         var manager = (ClientPlayerInteractionManagerAccessor) mc.interactionManager;
-        if (manager.bytephase$isBreaking() && !manager.bytephase$breakingPos().equals(target)
-                || packet != null && packet.overlayPosition() != null && !packet.overlayPosition().equals(target)) {
+        if (manager.bytephase$isBreaking() && !manager.bytephase$breakingPos().equals(target)) {
             stop();
             return;
         }
@@ -138,12 +129,10 @@ public final class TunnelMiner extends Module {
             stop();
             return;
         }
-        // Keep vanilla progress, and never restart PacketMine during its acknowledgement wait.
-        boolean owns = packet != null ? packet.ownsBreaking(target)
-                : manager.bytephase$isBreaking() && target.equals(manager.bytephase$breakingPos());
+        // Keep existing vanilla progress while the attack input is held.
+        boolean owns = manager.bytephase$isBreaking() && target.equals(manager.bytephase$breakingPos());
         if (!owns) {
-            if (!mc.interactionManager.attackBlock(target, actual.getSide())
-                    || packet != null && !packet.ownsBreaking(target)) {
+            if (!mc.interactionManager.attackBlock(target, actual.getSide())) {
                 stop();
                 return;
             }
@@ -164,7 +153,7 @@ public final class TunnelMiner extends Module {
 
     private void guardInput() {
         var mc = BytePhase.mc;
-        if (!available() || heading == null || correctionPause > 0 || priorityMiner()
+        if (!available() || heading == null || correctionPause > 0
                 || Math.abs(mc.player.getY() - floorY) > 0.01 || !loadedCorridor()) {
             stop();
             return;
@@ -184,7 +173,7 @@ public final class TunnelMiner extends Module {
 
     private double reach() {
         var player = BytePhase.mc.player;
-        // Reach overrides the getter; the vanilla attribute remains the upper bound.
+        // The vanilla interaction attribute remains the upper bound.
         return Math.min(player.getBlockInteractionRange(), player.getAttributeValue(EntityAttributes.BLOCK_INTERACTION_RANGE));
     }
 
@@ -289,18 +278,6 @@ public final class TunnelMiner extends Module {
                 || state.isOf(Blocks.SWEET_BERRY_BUSH) || state.isOf(Blocks.WITHER_ROSE) || state.isOf(Blocks.POWDER_SNOW);
     }
 
-    private boolean priorityMiner() {
-        if (BytePhase.modules == null) return false;
-        AutoMine auto = BytePhase.modules.get(AutoMine.class);
-        Nuker nuker = BytePhase.modules.get(Nuker.class);
-        return auto != null && auto.isEnabled() || nuker != null && nuker.isEnabled();
-    }
-
-    private PacketMine packetMine() {
-        PacketMine packet = BytePhase.modules == null ? null : BytePhase.modules.get(PacketMine.class);
-        return packet != null && packet.isEnabled() ? packet : null;
-    }
-
     private void releaseInput() {
         KeyOverride.releaseAll(this, BytePhase.mc != null && BytePhase.mc.currentScreen == null
                 && BytePhase.mc.isWindowFocused());
@@ -309,9 +286,7 @@ public final class TunnelMiner extends Module {
     private void stop() {
         releaseInput();
         var mc = BytePhase.mc;
-        if (target != null && mc != null && mc.world == activeWorld && mc.player == activePlayer && !priorityMiner()) {
-            PacketMine packet = packetMine();
-            if (packet != null) packet.cancel(target);
+        if (target != null && mc != null && mc.world == activeWorld && mc.player == activePlayer) {
             if (mc.interactionManager != null) {
                 var manager = (ClientPlayerInteractionManagerAccessor) mc.interactionManager;
                 if (manager.bytephase$isBreaking() && target.equals(manager.bytephase$breakingPos()))

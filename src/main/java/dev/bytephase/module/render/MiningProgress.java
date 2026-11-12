@@ -4,7 +4,6 @@ import dev.bytephase.BytePhase;
 import dev.bytephase.mixin.ClientPlayerInteractionManagerAccessor;
 import dev.bytephase.module.Category;
 import dev.bytephase.module.Module;
-import dev.bytephase.module.world.PacketMine;
 import dev.bytephase.render.RenderBox;
 import dev.bytephase.render.RenderProjection;
 import dev.bytephase.setting.BooleanSetting;
@@ -92,16 +91,9 @@ public final class MiningProgress extends Module {
         if (mc == null || mc.player == null || mc.world == null || mc.world != world) return result;
         double rangeSq = range.getValue() * range.getValue();
         if (showSelf.getValue() && mc.interactionManager != null) {
-            PacketMine packetMine = BytePhase.modules.get(PacketMine.class);
-            BlockPos pos = packetMine == null ? null : packetMine.overlayPosition();
-            float progress;
-            if (pos != null) {
-                progress = packetMine.overlayProgress();
-            } else {
-                var accessor = (ClientPlayerInteractionManagerAccessor) mc.interactionManager;
-                pos = accessor.bytephase$isBreaking() ? accessor.bytephase$breakingPos() : null;
-                progress = accessor.bytephase$breakingProgress();
-            }
+            var accessor = (ClientPlayerInteractionManagerAccessor) mc.interactionManager;
+            BlockPos pos = accessor.bytephase$isBreaking() ? accessor.bytephase$breakingPos() : null;
+            float progress = accessor.bytephase$breakingProgress();
             if (pos != null && !mc.world.getBlockState(pos).isAir()
                     && pos.toCenterPos().squaredDistanceTo(mc.player.getEntityPos()) <= rangeSq) {
                 result.add(new Display(pos, "You", clamp(progress)));

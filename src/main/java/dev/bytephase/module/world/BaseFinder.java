@@ -66,7 +66,8 @@ public final class BaseFinder extends Module {
     // Only these coordinates and revision notices are shared with packet threads.
     private ChunkPos trackedOrigin;
     private int trackedRange;
-    private long nextRevision;
+    private volatile long nextRevision;
+    private long renderRevision;
     private ClientWorld world;
     private ChunkPos origin;
     private int previousRange;
@@ -443,12 +444,15 @@ public final class BaseFinder extends Module {
     }
 
     private void refreshMarkers() {
-        renderBoxes.clear();
-        marked.entrySet().removeIf(entry -> loadedChunk(entry.getKey()) != entry.getValue().chunk
-                || !unchanged(entry.getKey(), entry.getValue().revision)
-                || Math.abs((long) ChunkPos.getPackedX(entry.getKey()) - origin.x) > previousRange
-                || Math.abs((long) ChunkPos.getPackedZ(entry.getKey()) - origin.z) > previousRange);
-        marked.forEach((key, marker) -> renderBoxes.add(marker.box));
+        synchronized (changeLock) {
+            renderBoxes.clear();
+            marked.entrySet().removeIf(entry -> loadedChunk(entry.getKey()) != entry.getValue().chunk
+                    || !unchanged(entry.getKey(), entry.getValue().revision)
+                    || Math.abs((long) ChunkPos.getPackedX(entry.getKey()) - origin.x) > previousRange
+                    || Math.abs((long) ChunkPos.getPackedZ(entry.getKey()) - origin.z) > previousRange);
+            marked.forEach((key, marker) -> renderBoxes.add(marker.box));
+            renderRevision = nextRevision;
+        }
     }
 
     @Override
@@ -459,7 +463,9 @@ public final class BaseFinder extends Module {
     @Override
     public void onRender3D(MatrixStack matrices, VertexConsumerProvider consumers, float tickDelta) {
         if (world == null || BytePhase.mc.world != world || !markers.getValue()) return;
-        refreshMarkers();
+        // Ticks maintain the cache. Between ticks only a packet revision can
+        // invalidate it, so unchanged frames reuse the same marker lists.
+        if (renderRevision != nextRevision) refreshMarkers();
         if (!renderBoxes.isEmpty()) {
             EspRenderer.drawBoxes(renderBoxes, color.getValue(), "Highlight", true);
         }
