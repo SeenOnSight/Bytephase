@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "dev.bytephase.test.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["NativePacketTraceMixin"],
+  "injectors": {"defaultRequire": 1}
+}

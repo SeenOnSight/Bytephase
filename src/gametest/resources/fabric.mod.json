@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "bytephase-gametest",
+  "version": "1.0.0",
+  "name": "Bytephase regression tests",
+  "environment": "client",
+  "mixins": ["bytephase-gametest.mixins.json"],
+  "entrypoints": {
+    "fabric-client-gametest": ["dev.bytephase.test.ModuleRegressionTest"]
+  },
+  "depends": {
+    "bytephase": "*",
+    "fabric-client-gametest-api-v1": "*"
+  }
+}
