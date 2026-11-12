@@ -11,7 +11,7 @@ import net.minecraft.item.ItemStack;
 /**
  * Shortens the right-click cooldown while use is held down.
  *
- * <p>Ported from Anubis' {@code FastUseModule}. Blocks and usable items can be
+ * <p>Blocks and usable items can be
  * toggled separately so an item such as a potion is not spammed by accident.</p>
  */
 public final class FastUse extends Module {

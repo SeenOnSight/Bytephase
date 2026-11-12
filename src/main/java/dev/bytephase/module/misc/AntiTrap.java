@@ -12,7 +12,7 @@ import net.minecraft.util.math.Box;
 /**
  * Removes armor stands and chest minecarts that are used to trap players.
  *
- * <p>Ported from Anubis' {@code AntiTrapModule}. The entities are only removed
+ * <p>The entities are only removed
  * client-side, which is what lets a trapped player walk out of the hitbox.</p>
  */
 public final class AntiTrap extends Module {

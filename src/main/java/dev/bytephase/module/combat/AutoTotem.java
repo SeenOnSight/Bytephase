@@ -14,7 +14,7 @@ import net.minecraft.screen.slot.SlotActionType;
 /**
  * Keeps a totem in the offhand.
  *
- * <p>Refined against Anubis' {@code AutoTotemModule}: refills whenever the
+ * <p>Refills whenever the
  * offhand is empty (or only below the health threshold), can use hotbar totems,
  * waits for the server slot update using the measured latency instead of
  * blindly clicking, and always swaps with a single offhand click.</p>

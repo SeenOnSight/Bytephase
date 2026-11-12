@@ -13,7 +13,7 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Free flight.
  *
- * <p>Refined against Anubis' {@code FlyModule}. Abilities mode lifts the vanilla
+ * <p>Abilities mode lifts the vanilla
  * fly speed, Velocity mode writes the velocity directly so it works on servers
  * that never grant flight. Anti-kick drops the player slightly while hovering,
  * which is the classic "not flying" position pattern.</p>

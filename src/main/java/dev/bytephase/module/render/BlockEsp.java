@@ -25,11 +25,10 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Highlights nearby blocks of a chosen kind.
  *
- * <p>Adapted from Anubis' {@code BlockEspModule}. Anubis scans through a
- * dedicated chunk scanner with a colour list; BytePhase uses preset groups and
- * a bounded scan. The scan is sliced across ticks and skips unloaded chunk
- * columns, because the previous version did ~120k block lookups in a single
- * tick once per second, which showed up as a regular stutter.</p>
+ * <p>Uses preset groups and a bounded scan. The scan is sliced across ticks
+ * and skips unloaded chunk columns, because the previous version did ~120k
+ * block lookups in a single tick once per second, which showed up as a regular
+ * stutter.</p>
  */
 public final class BlockEsp extends Module {
     private static final Set<Block> ORES = Set.of(

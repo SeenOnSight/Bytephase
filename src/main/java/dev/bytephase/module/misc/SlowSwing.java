@@ -7,7 +7,7 @@ import dev.bytephase.setting.NumberSetting;
 /**
  * Scales the hand swing animation duration.
  *
- * <p>Ported from Anubis' {@code SlowSwingModule}. Only the local player's swing
+ * <p>Only the local player's swing
  * is modified, so other entities keep vanilla animation speed.</p>
  */
 public final class SlowSwing extends Module {

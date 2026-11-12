@@ -32,11 +32,10 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Keeps track of players who vanish.
  *
- * <p>Derived from Anubis' {@code AntiVanishModule}. Anubis combines packet,
- * sound and particle heuristics; this port keeps the reliable part: a player
- * who is still in the tab list but no longer in the world has been hidden by
- * the server. Their last position is kept as a ghost and an alert is sent, so
- * the client stops relying on a vanished staff member being gone.</p>
+ * <p>A player who is still in the tab list but no longer in the world has
+ * been hidden by the server. Their last position is kept as a ghost and an
+ * alert is sent, so the client stops relying on a vanished staff member being
+ * gone.</p>
  */
 public final class AntiVanish extends Module {
     private static final long ALERT_COOLDOWN_MS = 1500L;

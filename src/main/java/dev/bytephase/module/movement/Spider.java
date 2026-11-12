@@ -10,7 +10,7 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Climbs walls while pressing into them.
  *
- * <p>Ported from Anubis' {@code SpiderModule}: vanilla cancels vertical motion
+ * <p>Vanilla cancels vertical motion
  * when a player collides horizontally, so re-applying a small upward velocity
  * after the movement tick lets the player slide up the wall.</p>
  */

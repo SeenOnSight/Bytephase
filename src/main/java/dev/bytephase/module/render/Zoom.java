@@ -7,7 +7,7 @@ import dev.bytephase.setting.NumberSetting;
 /**
  * Smooth zoom.
  *
- * <p>Refined against Anubis' {@code ZoomModule}: the field of view is eased
+ * <p>The field of view is eased
  * toward the target in log space so the change feels linear at any zoom level,
  * and the easing is time based instead of frame based.</p>
  */

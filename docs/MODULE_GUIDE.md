@@ -347,17 +347,12 @@ singleplayer world. The tests do not use your normal `run/` game directory.
   lists, so disabled modules add no per-frame or per-packet work. Empty render
   and packet paths are skipped entirely.
 
-- The earlier module expansion drew from Anubis
-  (`~/Downloads/anubis-src`). Anubis-specific shaders and asset packs, list
-  settings and server-specific macro protocols were excluded from that
-  expansion; [ADDING_MODULES.md](ADDING_MODULES.md) records its mapping and
-  exclusions. The supplied Clarity visual pipeline is described in the
-  visual notes above. New exploration and workflow utilities use Bytephase's
-  own implementations with design inspiration from local Anubis and Corz
-  archives; see [EXPLORATION.md](EXPLORATION.md#design-references).
+- The supplied Clarity visual pipeline is described in the visual notes above.
+  Exploration and workflow utilities use Bytephase's module, command and
+  storage structure; see [EXPLORATION.md](EXPLORATION.md#architecture).
 
-- [ADDING_MODULES.md](ADDING_MODULES.md) documents the module/setting/mixin structure and how
-  to port further modules from the Meteor and Anubis sources.
+- [ADDING_MODULES.md](ADDING_MODULES.md) documents the module/setting/mixin
+  structure, Minecraft mapping translations and how to add further modules.
 
 - This client is for personal use. 2b2t permits many client modifications, but
   server rules and anti-cheat behavior can change; use it at your own risk.

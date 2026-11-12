@@ -40,12 +40,14 @@ See the [exploration guide](docs/EXPLORATION.md) for defaults and workflows.
 ## Install
 
 1. Create a **Minecraft 1.21.11** installation with **Fabric Loader 0.20.1 or newer**.
-2. Put the Bytephase mod JAR and **Fabric API 0.141.6+1.21.11** in that
+2. Download [`bytephase-0.1.0.jar`](https://github.com/SeenOnSight/Bytephase/releases/download/v0.1.0/bytephase-0.1.0.jar)
+   from [GitHub Releases](https://github.com/SeenOnSight/Bytephase/releases).
+3. Put the Bytephase mod JAR and **Fabric API 0.141.6+1.21.11** in that
    installation's `mods/` directory.
-3. Launch the Fabric profile with **Java 21 or newer** and press **Right Shift**.
+4. Launch the Fabric profile with **Java 21 or newer** and press **Right Shift**.
 
-Use the active launcher's game directory. Build the JAR from this repository
-using the instructions below.
+Use the active launcher's game directory. To build the JAR from source,
+use the instructions below.
 
 ## Build
 
@@ -118,9 +120,6 @@ backup details.
 - [Adding modules](docs/ADDING_MODULES.md) — module, setting and mixin structure.
 - [Server compatibility](docs/SERVER_COMPATIBILITY.md) ·
   [Grim source audit](docs/GRIM_SOURCE_AUDIT.md) · [Audit notes](docs/AUDIT.md).
-
-The new workflows take design inspiration from the local Anubis and Corz
-archives and use Bytephase's own module and storage structure.
 
 ## License
 

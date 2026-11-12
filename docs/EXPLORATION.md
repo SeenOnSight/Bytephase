@@ -370,13 +370,12 @@ pending changes for a later retry.
 Back up the active game's `config/bytephase.json`, `config/bytephase/` and
 `options.txt` to preserve settings, profiles, coordinates and binds.
 
-## Design references
+## Architecture
 
-The local Anubis and Corz source archives supplied ideas for exploration and
-everyday gameplay workflows: chunk signals, coordinate capture, tunnels,
-hotbar roles, merchant work and named configurations. The utilities documented
-here are implemented in Bytephase's own module, command and storage structure.
-Their behavior is defined by the source links above.
+The exploration and everyday gameplay utilities use Bytephase's module,
+command and storage structure for chunk signals, coordinate capture, tunnels,
+hotbar roles, merchant work and named configurations. Their behavior is
+defined by the source links above.
 
 These additions use the existing marker renderer and keep the broader ESP,
 model styles, shaders, sky presets, crosshair and HUD workflows available.

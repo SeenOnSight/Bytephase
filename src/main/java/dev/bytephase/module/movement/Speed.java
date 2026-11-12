@@ -12,7 +12,7 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Ground movement speed.
  *
- * <p>Refined against Anubis' {@code SpeedModule}: Vanilla mode scales the
+ * <p>Vanilla mode scales the
  * sprinting ground speed, Strafe mode bunny-hops and then holds a higher air
  * speed. Both modes share the same liquid/sneak/ground gating.</p>
  */

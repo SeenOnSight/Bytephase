@@ -16,8 +16,6 @@ import net.minecraft.screen.slot.SlotActionType;
  * Swaps the hovered totem out of any open container into the offhand (or a
  * hotbar slot), so totems can be pulled from chests and shulkers without
  * dragging them manually.
- *
- * <p>Ported from Anubis' {@code HoverTotemModule}.</p>
  */
 public final class HoverTotem extends Module {
     private final BooleanSetting hotbarRefill = add(new BooleanSetting("HotbarRefill", false));

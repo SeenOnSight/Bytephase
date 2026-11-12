@@ -11,7 +11,7 @@ import net.minecraft.screen.slot.SlotActionType;
 /**
  * Tops up hotbar stacks from the inventory while a container is closed.
  *
- * <p>Ported from Anubis' {@code AutoReplenishModule}. The source stack is picked
+ * <p>The source stack is picked
  * up, merged into the hotbar slot, and leftovers are put back, so a single
  * module tick never loses items if the server rejects a click.</p>
  */

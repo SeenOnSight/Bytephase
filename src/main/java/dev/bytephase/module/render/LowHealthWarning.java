@@ -10,8 +10,6 @@ import net.minecraft.sound.SoundEvents;
 
 /**
  * Pulses a red screen border and plays a heartbeat when health is low.
- *
- * <p>Ported from Anubis' {@code LowHealthWarningModule}.</p>
  */
 public final class LowHealthWarning extends Module {
     private final NumberSetting threshold = add(new NumberSetting("Health", 8.0, 1.0, 20.0, 1.0));

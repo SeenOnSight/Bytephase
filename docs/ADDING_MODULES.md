@@ -2,8 +2,8 @@
 
 Notes on how BytePhase is put together, how to add a module or setting, and how
 to port something from the Meteor Client source (`~/Downloads/meteor-client-1.21.11`,
-which targets the same Minecraft 1.21.11 + Yarn mappings) or from Anubis
-(`~/Downloads/anubis-src`, same Minecraft version but Mojang mappings).
+which targets the same Minecraft 1.21.11 + Yarn mappings) or other code using
+Mojang mappings for the same Minecraft version.
 
 Everything here is intentionally small: a module is one class plus at most one
 line in `ModuleManager`, and the ClickGUI picks up its name, description,
@@ -311,26 +311,26 @@ does not. The mechanical translation:
 | `TimeChanger` | Render | `onPacketReceive` + level properties |
 | `NoRender` | Render | `InGameOverlayRenderer`, `ClientWorld`, `GameRenderer` |
 | `AntiPacketKick` | Misc | `ClientConnection.exceptionCaught`, `PacketByteBuf.readNbt` |
-| `Spider` | Movement | `onTick` + `horizontalCollision` (Anubis) |
-| `Sneak` | Movement | forced sneak key; 1.21.11 has no sneak command packet (Anubis) |
-| `JumpReset` | Combat | `onPacketReceive` (`EntityVelocityUpdateS2CPacket`) (Anubis) |
-| `WTap` | Combat | `onAttack` + `tickMovement` input mask (Anubis) |
-| `HoverTotem` | Combat | `HandledScreen` accessor + inventory `SWAP` (Anubis) |
-| `FastUse` | Misc | `MinecraftClient.itemUseCooldown` (Anubis) |
-| `SlowSwing` | Misc | `LivingEntity.getHandSwingDuration` (Anubis) |
-| `AntiTrap` | Misc | `onTick` entity sweep (Anubis) |
-| `AutoReplenish` | Player | inventory `PICKUP` merge (Anubis) |
-| `CustomFov` | Render | `GameRenderer.getFov` (Anubis) |
-| `ItemESP` | Render | `RenderBox` + `RenderProjection` (Anubis) |
-| `BlockESP` | Render | bounded local scan + `RenderBox` (Anubis) |
-| `LowHealth` | Render | `onRender2D` + heartbeat sound (Anubis) |
+| `Spider` | Movement | `onTick` + `horizontalCollision` |
+| `Sneak` | Movement | forced sneak key; 1.21.11 has no sneak command packet |
+| `JumpReset` | Combat | `onPacketReceive` (`EntityVelocityUpdateS2CPacket`) |
+| `WTap` | Combat | `onAttack` + `tickMovement` input mask |
+| `HoverTotem` | Combat | `HandledScreen` accessor + inventory `SWAP` |
+| `FastUse` | Misc | `MinecraftClient.itemUseCooldown` |
+| `SlowSwing` | Misc | `LivingEntity.getHandSwingDuration` |
+| `AntiTrap` | Misc | `onTick` entity sweep |
+| `AutoReplenish` | Player | inventory `PICKUP` merge |
+| `CustomFov` | Render | `GameRenderer.getFov` |
+| `ItemESP` | Render | `RenderBox` + `RenderProjection` |
+| `BlockESP` | Render | bounded local scan + `RenderBox` |
+| `LowHealth` | Render | `onRender2D` + heartbeat sound |
 
-Existing modules refined against Anubis behaviour: `Speed` (Vanilla/Strafe
-modes and liquid/sneak gating), `Fly` (Velocity/Abilities, vertical match,
-anti-kick drop), `Zoom` (time-based log-space easing), `AutoTotem`
-(Always/Health modes, hotbar sources, latency-aware retry), `KillAura` (target
-sorting, degrees-per-tick rotation, cooldown percentage), `Nametags` (rounded
-background, health bar, distance), `Blink` (bounded packet buffer).
+Other module behavior includes `Speed` (Vanilla/Strafe modes and liquid/sneak
+gating), `Fly` (Velocity/Abilities, vertical match, anti-kick drop), `Zoom`
+(time-based log-space easing), `AutoTotem` (Always/Health modes, hotbar
+sources, latency-aware retry), `KillAura` (target sorting, degrees-per-tick
+rotation, cooldown percentage), `Nametags` (rounded background, health bar,
+distance), and `Blink` (bounded packet buffer).
 
 Deliberately **not** ported: anything that needs Meteor's
 
@@ -339,13 +339,13 @@ Deliberately **not** ported: anything that needs Meteor's
 * list settings (`Xray`, `SoundBlocker`),
 * Starscript HUD or macro system.
 
-### Porting an Anubis module
+### Translating Mojang mappings
 
-Anubis uses the same Minecraft version, so its logic usually transfers as-is;
-only the names differ. The mechanical translation (all verified against
-1.21.11 Yarn):
+When adapting code for the same Minecraft version, translate its mapped
+names and connect its events to Bytephase's hooks. Common translations for
+1.21.11 Yarn:
 
-| Anubis (Mojang mappings) | BytePhase (Yarn) |
+| Mojang mappings / source conventions | BytePhase (Yarn) |
 | --- | --- |
 | `LocalPlayer` | `ClientPlayerEntity` |
 | `Minecraft.getInstance()` / `mc.screen` | `BytePhase.mc` / `mc.currentScreen` |
@@ -362,14 +362,14 @@ only the names differ. The mechanical translation (all verified against
 | own event bus (`TickEvent`, `PacketSendEvent`, ...) | `onTick`, `onPacketSend`, `onPacketReceive`, mixins |
 | `super(id, name, description, category)` | `super(name, category, description)` |
 
-Not ported from Anubis, and why:
+Additional integration requirements:
 
 * shader/HUD passes (`MotionBlur`, `ColorGrading`, `Atmosphere`, `ShaderESP`)
-  need the Anubis shader assets and a per-frame GPU hook,
+  need matching shader assets and a per-frame GPU hook,
 * character/cosmetic rendering and the Peep sky need large asset packs,
 * the donut-macro family (`AutoTpaHere`, AH bots, order macros) is specific to
   one server's chat protocol and UI,
-* `BlockESP`/`Xray` colour lists are Anubis list settings; BytePhase has no list
+* configurable `BlockESP`/`Xray` colour lists need list settings; BytePhase has no list
   setting, so `BlockESP` ships preset groups (`Spawner`, `Portal`, `Ore`,
   `Storage`) instead.
 

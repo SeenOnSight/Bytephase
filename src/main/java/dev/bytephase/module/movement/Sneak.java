@@ -9,7 +9,7 @@ import dev.bytephase.setting.BooleanSetting;
 /**
  * Holds sneak for you.
  *
- * <p>Ported from Anubis' {@code SneakModule}. 1.21.11 removed the standalone
+ * <p>1.21.11 removed the standalone
  * sneak command packet, so sneaking is applied through the sneak key, which
  * also makes the client send the matching player-input packet.</p>
  */

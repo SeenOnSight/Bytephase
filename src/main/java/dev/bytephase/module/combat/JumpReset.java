@@ -11,7 +11,7 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Jumps the tick knockback is applied so less of it is taken.
  *
- * <p>Ported from Anubis' {@code JumpResetModule}. Knockback arrives as an
+ * <p>Knockback arrives as an
  * {@link EntityVelocityUpdateS2CPacket} and is only visible to modules that
  * hook the inbound packet stream, so the jump has to be queued here and applied
  * on the next tick.</p>

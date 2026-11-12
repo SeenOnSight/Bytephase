@@ -13,7 +13,7 @@ import net.minecraft.util.PlayerInput;
  * Releases forward and sprint just before hitting a player so the opponent's
  * return knockback is reduced.
  *
- * <p>Adapted from Anubis' {@code WTapRecodeModule}. The sprint command and the
+ * <p>The sprint command and the
  * input rewrite happen before the attack packet is sent; {@link #maskInput}
  * runs inside {@code ClientPlayerEntity.tickMovement}, which is the only place
  * the client movement input is actually consumed.</p>
