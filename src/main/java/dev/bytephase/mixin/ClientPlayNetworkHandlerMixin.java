@@ -20,6 +20,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ClientPlayNetworkHandlerMixin {
     @Shadow private ClientWorld world;
 
+    @Inject(method = "onChunkData", at = @At("TAIL"))
+    private void bytephase$chunkLight(net.minecraft.network.packet.s2c.play.ChunkDataS2CPacket packet,
+                                      CallbackInfo ci) {
+        bytephase$receivedLight(packet.getChunkX(), packet.getChunkZ(), packet.getLightData(), true);
+    }
+
+    @Inject(method = "onLightUpdate", at = @At("TAIL"))
+    private void bytephase$lightUpdate(net.minecraft.network.packet.s2c.play.LightUpdateS2CPacket packet,
+                                       CallbackInfo ci) {
+        bytephase$receivedLight(packet.getChunkX(), packet.getChunkZ(), packet.getData(), false);
+    }
+
+    private void bytephase$receivedLight(int x, int z, net.minecraft.network.packet.s2c.play.LightData data,
+                                         boolean initial) {
+        if (BytePhase.modules == null || BytePhase.mc == null || !BytePhase.mc.isOnThread()) return;
+        BytePhase.modules.receivedChunkLight(world, x, z, data, initial);
+    }
+
     @Inject(method = "onBlockBreakingProgress", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V",
             shift = At.Shift.AFTER))

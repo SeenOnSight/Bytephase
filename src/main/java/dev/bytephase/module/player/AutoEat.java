@@ -13,7 +13,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.Hand;
 
-public final class AutoEat extends Module {
+public class AutoEat extends Module {
     private final NumberSetting hunger = add(new NumberSetting("MinHunger", 14, 1, 19, 1));
     private final BooleanSetting avoidHarmful = add(new BooleanSetting("AvoidHarmful", true));
     private final BooleanSetting saveGoldenApples = add(new BooleanSetting("SaveGoldenApples", true));
@@ -23,7 +23,11 @@ public final class AutoEat extends Module {
     private boolean eating;
 
     public AutoEat() {
-        super("AutoEat", Category.PLAYER, "Eats food when hunger gets low");
+        this("AutoEat", "Eats food when hunger gets low");
+    }
+
+    protected AutoEat(String name, String description) {
+        super(name, Category.PLAYER, description);
     }
 
     @Override
@@ -64,7 +68,7 @@ public final class AutoEat extends Module {
             restoreSelectedSlot();
             return;
         }
-        if (mc.player.getHungerManager().getFoodLevel() > hunger.asInt()) {
+        if (!shouldEat()) {
             stop();
             restoreSelectedSlot();
             return;
@@ -118,7 +122,13 @@ public final class AutoEat extends Module {
         capturedPlayer = null;
     }
 
-    private int findFood() {
+    protected boolean shouldEat() {
+        AutoGap healing = BytePhase.modules.get(AutoGap.class);
+        return !(healing != null && healing.isEnabled() && healing.needsHealing())
+                && BytePhase.mc.player.getHungerManager().getFoodLevel() <= hunger.asInt();
+    }
+
+    protected int findFood() {
         var mc = BytePhase.mc;
         int best = -1;
         float bestFood = 0;

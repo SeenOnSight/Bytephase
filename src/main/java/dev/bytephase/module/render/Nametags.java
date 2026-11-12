@@ -140,6 +140,7 @@ public final class Nametags extends Module {
                 renderTargetSet.add(living);
             }
         }
+        renderTargets.sort(java.util.Comparator.comparingDouble(target -> target.entity.squaredDistanceTo(mc.player)));
     }
 
     /** Hide vanilla labels only for entities present in the current overlay snapshot. */
@@ -186,6 +187,11 @@ public final class Nametags extends Module {
             int height = healthBar.getValue() ? 22 : 13;
             int x = (int) (projected[0] - width / 2.0);
             int y = (int) projected[1] - height;
+            int iconHeight = armorIcons.getValue() && living instanceof PlayerEntity ? 18 : 0;
+            int occupiedWidth = iconHeight > 0 ? Math.max(width, 72) : width;
+            int occupiedX = (int) (projected[0] - occupiedWidth / 2.0);
+            if (!dev.bytephase.render.OverlayLabels.reserve(occupiedX, y - iconHeight,
+                    occupiedWidth, height + iconHeight)) continue;
 
             if (armorIcons.getValue() && living instanceof PlayerEntity player) {
                 int count = 0;

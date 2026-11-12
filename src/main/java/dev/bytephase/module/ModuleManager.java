@@ -9,6 +9,19 @@ import dev.bytephase.module.combat.AutoWeapon;
 import dev.bytephase.module.combat.JumpReset;
 import dev.bytephase.module.combat.SprintReset;
 import dev.bytephase.module.combat.WTap;
+import dev.bytephase.module.combat.HoverTotem;
+import dev.bytephase.module.player.AutoDisconnect;
+import dev.bytephase.module.player.AutoGap;
+import dev.bytephase.module.player.InventoryCleaner;
+import dev.bytephase.module.render.DamageMarkers;
+import dev.bytephase.module.render.HitSounds;
+import dev.bytephase.module.render.MotionScanner;
+import dev.bytephase.module.render.Performance;
+import dev.bytephase.module.render.PrimeChunkFinder;
+import dev.bytephase.module.render.SmoothCamera;
+import dev.bytephase.module.render.SpawnerFinder;
+import dev.bytephase.module.render.TargetHud;
+import dev.bytephase.module.world.AutoFarm;
 import dev.bytephase.module.misc.AntiPacketKick;
 import dev.bytephase.module.misc.AntiVanish;
 import dev.bytephase.module.misc.SlowSwing;
@@ -196,6 +209,7 @@ public final class ModuleManager {
     public void init() {
         // Combat
         add(new AutoTotem());
+        add(new HoverTotem());
         add(new AutoArmor());
         add(new AimAssist());
         add(new AutoClicker());
@@ -218,6 +232,9 @@ public final class ModuleManager {
         // Player
         add(new AutoTool());
         add(new AutoEat());
+        add(new AutoGap());
+        add(new AutoDisconnect());
+        add(new InventoryCleaner());
         add(new ChestStealer());
         add(new AntiAfk());
         add(new AutoRespawn());
@@ -240,6 +257,9 @@ public final class ModuleManager {
         add(new Tracers());
         add(new PlayerEsp());
         add(new Nametags());
+        add(new DamageMarkers());
+        add(new HitSounds());
+        add(new TargetHud());
         add(new StorageEsp());
         add(new HoleEsp());
         add(new BlockHighlight());
@@ -261,6 +281,11 @@ public final class ModuleManager {
         add(new SusChunks());
         add(new TargetFx());
         add(new SkyShaders());
+        add(new MotionScanner());
+        add(new PrimeChunkFinder());
+        add(new SpawnerFinder());
+        add(new SmoothCamera());
+        add(new Performance());
         add(new BreadCrumbs());
         add(new Skeleton());
         add(new NoWeather());
@@ -277,6 +302,7 @@ public final class ModuleManager {
 
         // World
         add(new TunnelMiner());
+        add(new AutoFarm());
 
         // Explore
         add(new BaseFinder());
@@ -591,6 +617,7 @@ public final class ModuleManager {
     }
 
     public void render2D(DrawContext context, float tickDelta) {
+        dev.bytephase.render.OverlayLabels.beginFrame();
         List<Module> active = activeHud;
         if (active.isEmpty()) {
             return;
@@ -604,6 +631,31 @@ public final class ModuleManager {
             } catch (Exception e) {
                 report(module, "HUD render", e);
             }
+        }
+    }
+
+    /** Discovery consumers run after vanilla applies packets on the client thread. */
+    public void receivedChunkLight(net.minecraft.client.world.ClientWorld world, int x, int z,
+                                   net.minecraft.network.packet.s2c.play.LightData data, boolean initial) {
+        MotionScanner motion = get(MotionScanner.class);
+        PrimeChunkFinder prime = get(PrimeChunkFinder.class);
+        if (motion != null && motion.isEnabled()) {
+            try { motion.receive(world, x, z, data, initial); }
+            catch (Exception error) { report(motion, "received skylight", error); }
+        }
+        if (prime != null && prime.isEnabled()) {
+            try { prime.receive(world, x, z, data, initial); }
+            catch (Exception error) { report(prime, "received block light", error); }
+        }
+    }
+
+    public void receivedBlockUpdate(net.minecraft.client.world.ClientWorld world,
+                                    net.minecraft.util.math.BlockPos pos,
+                                    net.minecraft.block.BlockState before, net.minecraft.block.BlockState after) {
+        PrimeChunkFinder prime = get(PrimeChunkFinder.class);
+        if (prime != null && prime.isEnabled()) {
+            try { prime.blockUpdate(world, pos, before, after); }
+            catch (Exception error) { report(prime, "received block update", error); }
         }
     }
 

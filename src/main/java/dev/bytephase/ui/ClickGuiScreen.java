@@ -64,7 +64,7 @@ public final class ClickGuiScreen extends Screen {
         }
     }
 
-    private enum Kind { PANEL, HEADER, MODULE, EXPAND, BIND, BOOL, NUMBER, MODE,
+    private enum Kind { PANEL, HEADER, GROUP, MODULE, EXPAND, BIND, BOOL, NUMBER, MODE,
         COLOR_RED, COLOR_GREEN, COLOR_BLUE }
     private static final class Hit {
         Kind kind;
@@ -123,6 +123,7 @@ public final class ClickGuiScreen extends Screen {
     private final Map<Category, List<Module>> filteredModules = new EnumMap<>(Category.class);
     private final Map<Category, Integer> contentHeights = new EnumMap<>(Category.class);
     private final dev.bytephase.module.render.UiSettings appearance;
+    private boolean lastCompact;
 
     public ClickGuiScreen() {
         super(Text.literal("Bytephase"));
@@ -131,7 +132,9 @@ public final class ClickGuiScreen extends Screen {
         if (BytePhase.modules != null) {
             for (Category category : Category.values()) {
                 List<Module> list = new ArrayList<>(BytePhase.modules.byCategory(category));
-                list.sort(Comparator.comparing(module -> module.getName().toLowerCase(Locale.ROOT)));
+                Comparator<Module> byName = Comparator.comparing(module -> module.getName().toLowerCase(Locale.ROOT));
+                list.sort(category == Category.RENDER
+                        ? Comparator.comparing(RenderGroups::of).thenComparing(byName) : byName);
                 cachedModules.put(category, List.copyOf(list));
             }
         }
@@ -258,6 +261,12 @@ public final class ClickGuiScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        boolean compact = appearance == null || appearance.compactRender();
+        if (compact != lastCompact) {
+            contentHeights.clear();
+            hitCount = 0;
+            lastCompact = compact;
+        }
         hitCount = 0;
         contentHeights.clear();
         hoverPanel = null;
@@ -319,7 +328,31 @@ public final class ClickGuiScreen extends Screen {
         clipBottom = y + panelH - 2;
         ctx.enableScissor(x + 1, bodyY, x + width - 1, y + panelH - 2);
         int cursorY = bodyY - (int) panel.scroll;
+        String previousGroup = "";
         for (Module module : modules) {
+            if (grouped(panel)) {
+                String group = RenderGroups.of(module);
+                if (!group.equals(previousGroup)) {
+                    boolean open = groupOpen(module);
+                    int active = 0, total = 0;
+                    for (Module member : modules) {
+                        if (RenderGroups.of(member).equals(group)) {
+                            total++;
+                            if (member.isEnabled()) active++;
+                        }
+                    }
+                    if (cursorY + ROW_H >= bodyY && cursorY < y + panelH) {
+                        String label = (open ? "- " : "+ ") + group + " " + active + "/" + total;
+                        ctx.fill(x + 1, cursorY, x + width - 1, cursorY + ROW_H, Theme.SETTINGS_BG);
+                        ctx.drawText(textRenderer, textRenderer.trimToWidth(label, width - 8),
+                                x + 4, cursorY + 3, Theme.accent(), textShadow());
+                        addHit(Kind.GROUP, panel, module, null, x, cursorY, width, ROW_H);
+                    }
+                    cursorY += ROW_H;
+                    previousGroup = group;
+                }
+                if (!groupOpen(module)) continue;
+            }
             int moduleHeight = moduleHeight(module);
             if (cursorY + moduleHeight >= bodyY && cursorY < y + panelH) {
                 drawModule(ctx, panel, module, x + PAD, cursorY, width - PAD * 2, mouseX, mouseY);
@@ -477,7 +510,16 @@ public final class ClickGuiScreen extends Screen {
         Integer cached = contentHeights.get(panel.category);
         if (cached != null) return cached;
         int contentHeight = 4;
+        String previousGroup = "";
         for (Module module : modules(panel.category)) {
+            if (grouped(panel)) {
+                String group = RenderGroups.of(module);
+                if (!group.equals(previousGroup)) {
+                    contentHeight += ROW_H;
+                    previousGroup = group;
+                }
+                if (!groupOpen(module)) continue;
+            }
             contentHeight += moduleHeight(module) + GAP;
         }
         contentHeights.put(panel.category, contentHeight);
@@ -486,6 +528,18 @@ public final class ClickGuiScreen extends Screen {
 
     private boolean textShadow() {
         return appearance != null && appearance.textShadow();
+    }
+
+    private boolean grouped(Panel panel) {
+        return panel.category == Category.RENDER && (appearance == null || appearance.compactRender());
+    }
+
+    private static String groupKey(Module module) {
+        return "group:render:" + RenderGroups.of(module);
+    }
+
+    private boolean groupOpen(Module module) {
+        return !search.isEmpty() || expanded.contains(groupKey(module));
     }
 
     private static int settingHeight(Setting<?> setting) {
@@ -556,6 +610,16 @@ public final class ClickGuiScreen extends Screen {
                     }
                 }
                 case MODULE -> { if (button == 0) hit.module.toggle(); }
+                case GROUP -> {
+                    if (button == 0 || button == 1) {
+                        String key = groupKey(hit.module);
+                        if (!expanded.remove(key)) expanded.add(key);
+                        contentHeights.clear();
+                        EXPANDED.clear();
+                        EXPANDED.addAll(expanded);
+                        hitCount = 0;
+                    }
+                }
                 case EXPAND -> {
                     if (button == 0) {
                         if (!expanded.remove(hit.module.getName())) expanded.add(hit.module.getName());
@@ -565,7 +629,13 @@ public final class ClickGuiScreen extends Screen {
                     }
                 }
                 case BIND -> { if (button == 0) binding = hit.module; }
-                case BOOL -> { if (button == 0) ((BooleanSetting) hit.setting).toggle(); }
+                case BOOL -> {
+                    if (button == 0) {
+                        ((BooleanSetting) hit.setting).toggle();
+                        contentHeights.clear();
+                        hitCount = 0;
+                    }
+                }
                 case NUMBER -> {
                     if (button == 0) {
                         draggingNumber = (NumberSetting) hit.setting;

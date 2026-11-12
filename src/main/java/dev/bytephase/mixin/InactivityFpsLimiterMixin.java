@@ -11,6 +11,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class InactivityFpsLimiterMixin {
     @Inject(method = "update", at = @At("RETURN"), cancellable = true)
     private void bytephase$unfocusedFps(CallbackInfoReturnable<Integer> cir) {
-        cir.setReturnValue(UnfocusedFps.cap(cir.getReturnValue()));
+        cir.setReturnValue(dev.bytephase.module.render.Performance.cap(UnfocusedFps.cap(cir.getReturnValue())));
     }
 }

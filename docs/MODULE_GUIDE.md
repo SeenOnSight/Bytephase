@@ -2,7 +2,7 @@
 
 [Home](../README.md) · [Exploration & workflows](EXPLORATION.md) · [Adding modules](ADDING_MODULES.md)
 
-Bytephase 0.2.0 includes 88 discovery, visual, inventory and input-assistance modules.
+Bytephase 0.2.1 includes 101 discovery, visual, inventory and input-assistance modules.
 The current catalog uses normal interaction reach and movement inputs. Packet
 spoofing, movement amplification, automatic combat and collision bypass modules
 have been removed from the source and release JAR.
@@ -13,7 +13,7 @@ have been removed from the source and release JAR.
 - The GUI is a set of floating category panels. Drag a panel header to move it,
   right-click a header to collapse it, and scroll inside a panel to move
   through its modules.
-- Left-click a module to toggle it. Click the small chevron on the right of a
+- Left-click a module to toggle it. Click the small `+` on the right of a
   module row to open its settings and keybind row. Modules without settings
   still expose the bind row.
 - Inside an expanded module, click `Bind` and press a key to bind it. `Escape`
@@ -206,3 +206,33 @@ The client tests use an isolated temporary world. They exercise the active
 catalog, settings recovery, discovery heuristics, scanner budgets, cache
 invalidation, keybinds, eating, GUI and rendering. See [audit notes](AUDIT.md)
 for measured scan completion and performance limits.
+
+## Added in 0.2.1
+
+| Module | Behavior and defaults |
+| --- | --- |
+| AutoDisconnect | One-shot multiplayer low-health disconnect; 4 HP threshold, absorption included. Disables itself and suppresses AutoReconnect until you manually reconnect. |
+| AutoGap | Uses hotbar golden apples below 14 HP, preferring enchanted apples. Shares AutoEat's input ownership and selection restoration; AutoEat yields while healing is needed. |
+| InventoryCleaner | Drops selected junk with at least a two-tick delay. Every junk category starts off; hotbar, named and enchanted stacks are protected. Stops while a screen or cursor stack is active. |
+| HoverTotem | Swaps the hovered container totem to offhand. Optional hotbar refill defaults off; AutoTotem has priority. |
+| AutoFarm | Harvests mature crops under the actual crosshair within vanilla block reach. Three-tick default delay; pauses in screens and during item use. |
+| HitSounds | Local attack feedback using Chime, Pling or Click. This is attack feedback, not a server-confirmed damage signal. |
+| DamageMarkers | Floating observed health-loss values for your last attacked target and optionally yourself. Nearby damage defaults off; at most 64 live markers. |
+| TargetHUD | Health, distance and held items for the last attacked living entity. Position is configurable; target expires after 80 ticks. |
+| SmoothCamera | Vanilla cinematic mouse smoothing, with the previous setting restored on disable. |
+| Performance | Balanced chunk updates preserve immediate player edits; Threaded can delay visible terrain updates. Optional streaming FPS limit only lowers the existing limit. Stored video preferences remain intact. |
+| MotionScanner | Groups explicit zero-filled received skylight arrays below sea level. Empty masks are not anomalies. Cluster size defaults to one; discovery processing runs while you are above Y 0. |
+| PrimeChunkFinder | Tracks received underground block-light increases and redstone changes. Initial loaded light is a baseline. Ignores nearby player activity, visited underground chunks, and changes near lava or glowing amethyst. |
+| SpawnerFinder | Scans two loaded chunks per tick, starting nearby. Shows exact spawner positions and available mob names. Trial spawners default off. |
+
+The three new discovery overlays default to thin outline markers with labels and
+tracers off. Chat alerts are rate limited to one per second per scanner. Their
+caches are bounded and reset when the world changes or the module is disabled.
+They report candidates; natural generation and server lighting policies can
+produce similar signals. PrimeChunkFinder currently considers light increases
+below Y 0, rather than every received light change.
+
+Appearance settings apply even when the Appearance entry is disabled. Compact
+render groups and expansion state are saved with the existing ClickGUI layout.
+Search opens matching groups without changing saved expansion state. The
+existing module names, settings and keybind IDs are preserved.

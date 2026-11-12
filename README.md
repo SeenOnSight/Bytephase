@@ -3,7 +3,7 @@
   <h1>Bytephase</h1>
   <p><strong>Explore farther. Keep your bearings. Make the everyday easier.</strong></p>
   <p>A Fabric utility client for Minecraft, built for personal play on 2b2t.</p>
-  <p><strong>0.2.0</strong> &nbsp;·&nbsp; Minecraft <strong>1.21.11</strong> &nbsp;·&nbsp; Fabric &nbsp;·&nbsp; MIT</p>
+  <p><strong>0.2.1</strong> &nbsp;·&nbsp; Minecraft <strong>1.21.11</strong> &nbsp;·&nbsp; Fabric &nbsp;·&nbsp; MIT</p>
   <p>
     <a href="#features">Features</a> &nbsp;·&nbsp;
     <a href="#install">Install</a> &nbsp;·&nbsp;
@@ -19,13 +19,13 @@
 
 A compact module system, a searchable ClickGUI and the matching binary `[01]`
 HUD mark. Gameplay and exploration utilities sit alongside the existing ESP,
-model effects, shaders and general visuals. The current catalog contains **88 modules**.
+model effects, shaders and general visuals. The current catalog contains **101 modules**.
 Aim assistance requires held attack and normal reach; repeated attacks respect
 Minecraft's full attack cooldown.
 
 | For | Tools | What they do |
 | --- | --- | --- |
-| **Discovery** | `BaseFinder` · `SusChunks` | Scan loaded chunks for storage, spawners, weighted amethyst and opt-in activity signals |
+| **Discovery** | `BaseFinder` · `SusChunks` · `MotionScanner` · `PrimeChunkFinder` · `SpawnerFinder` | Scan loaded chunks for storage, spawners, weighted amethyst and opt-in activity signals |
 | **Navigation** | `Navigator` · `CoordSnapper` | Track saved waypoints and copy your position or a looked-at block |
 | **Mining** | `TunnelMiner` · `MiningProgress` | Work a level tunnel with visible aim and view breaking progress |
 | **Inventory & trade** | `HotbarArrange` · `TradeAssist` | Maintain configured hotbar roles and manually batch a selected merchant offer |
@@ -42,7 +42,7 @@ See the [exploration guide](docs/EXPLORATION.md) for defaults and workflows.
 ## Install
 
 1. Create a **Minecraft 1.21.11** installation with **Fabric Loader 0.20.1 or newer**.
-2. Download [`bytephase-0.2.0.jar`](https://github.com/SeenOnSight/Bytephase/releases/download/v0.2.0/bytephase-0.2.0.jar)
+2. Download [`bytephase-0.2.1.jar`](https://github.com/SeenOnSight/Bytephase/releases/download/v0.2.1/bytephase-0.2.1.jar)
    from [GitHub Releases](https://github.com/SeenOnSight/Bytephase/releases).
 3. Put the Bytephase mod JAR and **Fabric API 0.141.6+1.21.11** in that
    installation's `mods/` directory.
@@ -60,14 +60,14 @@ Use **Java 25** for the configured Loom build. The mod itself targets
 ./gradlew build
 ```
 
-Output: `build/libs/bytephase-0.2.0.jar`.
+Output: `build/libs/bytephase-0.2.1.jar`.
 
 <details>
 <summary><strong>Build versions</strong></summary>
 
 | Component | Configured version |
 | --- | --- |
-| Bytephase | `0.2.0` |
+| Bytephase | `0.2.1` |
 | Minecraft | `1.21.11` |
 | Yarn mappings | `1.21.11+build.6` |
 | Fabric Loader | `0.20.1` |
@@ -88,7 +88,7 @@ Version sources: [gradle.properties](gradle.properties),
 | --- | --- |
 | Open / close ClickGUI | **Right Shift**, or the configured ClickGUI key |
 | Toggle a module | Left-click its row |
-| Expand settings and bind | Click the row's chevron |
+| Expand settings and bind | Click the row's `+` |
 | Assign / clear a bind | Click **Bind**, then a key / **Escape** |
 | Move / collapse a panel | Drag / right-click its header |
 | Find a module | Type in the bottom search field |
@@ -99,6 +99,22 @@ Sliders support dragging; mode values cycle with left/right click. Module binds
 also appear in vanilla **Controls → Bytephase**. TradeAssist's bind works while
 an open merchant screen has focus. More UI details and module-specific behavior
 are in the [module guide](docs/MODULE_GUIDE.md).
+
+## Compact overlays
+
+Render controls start in six collapsible groups: **ESP**, **Discovery**, **HUD**,
+**Camera**, **Effects** and **Environment**. Click a group to open it; searching
+also reveals matching modules inside collapsed groups. Disable
+`Appearance → CompactRender` to show individual rows.
+
+`ArrayList → CompactRender` combines enabled render modules into group counts;
+`MaxRows` caps its height. `Appearance → WorldLabelLimit` and
+`AvoidLabelOverlap` apply one shared budget to nametags, item labels,
+logout spots, discovery labels and damage markers.
+
+The current feature additions and remaining migration work are recorded in the
+[module guide](docs/MODULE_GUIDE.md#added-in-021) and
+[feature migration inventory](docs/FEATURE_MIGRATION.md).
 
 ## Your settings & places
 

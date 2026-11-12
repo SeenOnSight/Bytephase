@@ -23,6 +23,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(WorldRenderer.class)
 public abstract class WorldRendererMixin {
+    @WrapOperation(method = "updateChunks", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/option/SimpleOption;getValue()Ljava/lang/Object;"))
+    private Object bytephase$chunkUpdatePolicy(net.minecraft.client.option.SimpleOption<?> option,
+                                               Operation<Object> original) {
+        Object value = original.call(option);
+        return BytePhase.mc != null && option == BytePhase.mc.options.getChunkBuilderMode()
+                ? dev.bytephase.module.render.Performance.chunkMode((net.minecraft.client.render.ChunkBuilderMode) value)
+                : value;
+    }
+
     /**
      * Actual 1.21.11 signature: (allocator, tickCounter, renderBlockOutline,
      * camera, viewMatrix, projectionMatrix, cullProjectionMatrix, fog,

@@ -182,6 +182,7 @@ public final class LogoutSpots extends Module {
             int width = mc.textRenderer.getWidth(text);
             int x = (int) projected[0] - width / 2;
             int y = (int) projected[1];
+            if (!dev.bytephase.render.OverlayLabels.reserve(x - 2, y - 1, width + 4, 11)) continue;
             context.fill(x - 2, y - 1, x + width + 2, y + 9, 0x80000000);
             context.drawText(mc.textRenderer, text, x, y, 0xFF000000 | color.rgb(), true);
         }

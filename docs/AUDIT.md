@@ -1,5 +1,29 @@
 # Bytephase debugging and performance notes
 
+## Version 0.2.1 — 2026-11-12
+
+The catalog now contains 101 modules. This migration adds 13 utility and
+render/discovery modules; see [the module guide](MODULE_GUIDE.md#added-in-021)
+and [the complete source feature inventory](FEATURE_MIGRATION.md).
+
+- Render controls are grouped and collapsed by default; existing module settings
+  and names persist. Search reveals matching groups.
+- The enabled-module HUD groups render modules and has a configurable row cap.
+- World labels share a bounded overlap budget with reusable rectangle storage.
+- New discovery caches are bounded and use loaded chunks. Light hooks execute
+  after packet application on the client thread, inside the module error policy.
+- Discovery alerts use bounded queues and a one-second interval per scanner.
+- AutoGap reuses AutoEat's key ownership and selection restoration. AutoEat
+  yields while healing is needed. HoverTotem yields to AutoTotem.
+- SmoothCamera restores the captured setting. Performance overrides policies
+  when used, without changing saved video preferences.
+
+Validation: production compilation and JAR remapping completed. Gameplay and
+client regression tests were not run for this release. No RAM or FPS improvement
+is claimed without a new runtime measurement. The migration remains incomplete.
+
+## Version 0.2.0 — 2026-11-12
+
 Date: 2026-11-12 · Version: 0.2.0 · Active modules: 88
 
 ## Scope and fixes

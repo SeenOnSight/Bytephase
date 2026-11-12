@@ -158,6 +158,7 @@ public final class ItemEsp extends Module {
             int textWidth = mc.textRenderer.getWidth(entry.label);
             int x = (int) (projected[0] - textWidth / 2.0);
             int y = (int) projected[1];
+            if (!dev.bytephase.render.OverlayLabels.reserve(x - 2, y - 1, textWidth + 4, 11)) continue;
             context.fill(x - 2, y - 1, x + textWidth + 2, y + 10, 0x90000000);
             context.drawTextWithShadow(mc.textRenderer, entry.label, x, y, labelColor);
         }

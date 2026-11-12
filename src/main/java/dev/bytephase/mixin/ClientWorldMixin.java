@@ -13,6 +13,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientWorld.class)
 public abstract class ClientWorldMixin {
+    @Inject(method = "handleBlockUpdate", at = @At("HEAD"))
+    private void bytephase$redstoneActivity(BlockPos pos, BlockState state, int flags, CallbackInfo ci) {
+        if (BytePhase.modules == null || BytePhase.mc == null || !BytePhase.mc.isOnThread()) return;
+        ClientWorld world = (ClientWorld) (Object) this;
+        BytePhase.modules.receivedBlockUpdate(world, pos, world.getBlockState(pos), state);
+    }
+
     @Inject(method = "addBlockBreakParticles", at = @At("HEAD"), cancellable = true)
     private void bytephase$noBreakParticles(BlockPos pos, BlockState state, CallbackInfo ci) {
         NoRender noRender = BytePhase.modules == null ? null : BytePhase.modules.noRender();
