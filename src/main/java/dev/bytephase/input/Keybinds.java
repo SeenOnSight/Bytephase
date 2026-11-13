@@ -68,6 +68,7 @@ public final class Keybinds {
     }
 
     public static void tick(MinecraftClient mc) {
+        dev.bytephase.render.capture.StreamProof.emergencyKey(mc);
         if (clickGuiKey == null) {
             return;
         }

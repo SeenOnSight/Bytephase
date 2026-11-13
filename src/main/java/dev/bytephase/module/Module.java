@@ -52,7 +52,7 @@ public abstract class Module {
     }
 
     public boolean isEnabled() {
-        return enabled;
+        return enabled && !dev.bytephase.render.capture.StreamProof.isCleanFrame();
     }
 
     public void setEnabled(boolean value) {

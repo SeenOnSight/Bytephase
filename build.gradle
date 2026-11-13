@@ -4,6 +4,8 @@ plugins {
 
 version = project.mod_version
 group = project.maven_group
+evaluationDependsOn(':pvp-api')
+evaluationDependsOn(':pvp')
 
 base {
     archivesName = project.archives_base_name
@@ -19,6 +21,7 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    implementation project(':pvp-api')
 }
 
 processResources {
@@ -40,6 +43,11 @@ java {
 }
 
 jar {
+    dependsOn project(':pvp').tasks.named('remapJar')
+    from(project(':pvp').tasks.named('remapJar').flatMap { it.archiveFile }) {
+        into 'META-INF/jars'
+    }
+    from(project(':pvp-api').sourceSets.main.output)
     from(rootProject.file('LICENSE')) {
         rename { "${it}_${project.base.archivesName.get()}" }
     }

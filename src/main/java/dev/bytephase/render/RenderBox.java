@@ -12,7 +12,6 @@ import net.minecraft.util.math.Vec3d;
 
 /** Shared world-space box and line drawing through Minecraft's world buffers. */
 public final class RenderBox {
-    private static final float[] TRACER_FORWARD = new float[3];
     private static MatrixStack matrices;
     private static VertexConsumerProvider consumers;
 
@@ -34,16 +33,11 @@ public final class RenderBox {
     }
 
     /**
-     * A point just in front of the camera. Starting exactly at the camera
-     * makes the line shader expand a vertex at w=0, which clips the whole
-     * tracer; a forward-only offset preserves the screen-center crosshair
-     * anchor while staying in front of the near plane.
+     * Unprojects the crosshair to a point inside the view volume. This avoids
+     * the camera-plane w=0 and stays centered through view bob and hurt tilt.
      */
     public static Vec3d tracerOrigin() {
-        RenderProjection.cameraForward(TRACER_FORWARD);
-        Vec3d camera = RenderProjection.cameraPos();
-        return camera.add(TRACER_FORWARD[0] * 0.35, TRACER_FORWARD[1] * 0.35,
-                        TRACER_FORWARD[2] * 0.35);
+        return RenderProjection.crosshairOrigin();
     }
 
     public static void drawFilledBox(Box box, int argb) {

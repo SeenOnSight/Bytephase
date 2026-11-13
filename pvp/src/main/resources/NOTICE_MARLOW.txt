@@ -1,0 +1,7 @@
+Marlow's Crystal Optimizer integration
+Copyright (c) 2026 Bram and Marlow
+
+Crystal helpers and mixins adapted from the user-supplied 2.0.0 Minecraft 1.21.11
+JAR. Namespace, module lifecycle, settings, protocol integration and reset
+handling were modified for Bytephase. The original MIT license is included as
+LICENSE_MARLOW.

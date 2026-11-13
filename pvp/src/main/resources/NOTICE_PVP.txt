@@ -1,0 +1,6 @@
+PvP combat component
+
+Adapted from the user-supplied GPL version 3 source archive.
+The original combat algorithms are retained. Package names, UI and input/event
+integration, settings adapters and module registration have been modified.
+The complete license is included as LICENSE_PVP.

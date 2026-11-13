@@ -94,6 +94,7 @@ import dev.bytephase.module.render.SusChunks;
 import dev.bytephase.module.render.TimeChanger;
 import dev.bytephase.module.render.Tracers;
 import dev.bytephase.module.render.Trajectories;
+import dev.bytephase.module.render.ThrowableTrajectory;
 import dev.bytephase.module.render.ViewClip;
 import dev.bytephase.module.render.ViewModel;
 import dev.bytephase.module.render.Watermark;
@@ -185,6 +186,7 @@ public final class ModuleManager {
     private volatile ArmorHud armorHud;
     private volatile Nametags nametags;
     private volatile PlayerEsp playerEsp;
+    private volatile Performance performance;
 
     private volatile SlowSwing slowSwing;
     private volatile WTap wTap;
@@ -208,15 +210,11 @@ public final class ModuleManager {
 
     public void init() {
         // Combat
-        add(new AutoTotem());
-        add(new HoverTotem());
         add(new AutoArmor());
-        add(new AimAssist());
         add(new AutoClicker());
         add(new AutoWeapon());
-        add(new JumpReset());
-        add(new WTap());
         add(new SprintReset());
+        for (var module : dev.bytephase.module.combat.CombatIntegration.modules()) add(module);
 
         // Movement
         add(new Sprint());
@@ -271,6 +269,7 @@ public final class ModuleManager {
         add(new Zoom());
         add(new NoBob());
         add(new Trajectories());
+        add(new ThrowableTrajectory());
         add(new LogoutSpots());
         add(new TimeChanger());
         add(new NoRender());
@@ -399,6 +398,7 @@ public final class ModuleManager {
         armorHud = null;
         nametags = null;
         playerEsp = null;
+        performance = null;
         slowSwing = null;
         wTap = null;
         safeWalk = null;
@@ -441,6 +441,9 @@ public final class ModuleManager {
             }
             else if (module instanceof PlayerEsp value) {
                 playerEsp = value;
+            }
+            else if (module instanceof Performance value) {
+                performance = value;
             }
             else if (module instanceof SlowSwing value) {
                 slowSwing = value;
@@ -528,23 +531,24 @@ public final class ModuleManager {
         return name == null ? null : byName.get(name.toLowerCase(Locale.ROOT));
     }
 
-    public Zoom zoom() { return zoom; }
+    public Zoom zoom() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : zoom; }
 
-    public CustomFov customFov() { return customFov; }
+    public CustomFov customFov() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : customFov; }
 
-    public NoRender noRender() { return noRender; }
+    public NoRender noRender() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : noRender; }
 
-    public Crosshair crosshair() { return crosshair; }
+    public Crosshair crosshair() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : crosshair; }
 
-    public SkyShaders skyShaders() { return skyShaders; }
+    public SkyShaders skyShaders() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : skyShaders; }
 
-    public ArmorHud armorHud() { return armorHud; }
+    public ArmorHud armorHud() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : armorHud; }
 
-    public Nametags nametags() { return nametags; }
+    public Nametags nametags() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : nametags; }
 
-    public PlayerEsp playerEsp() { return playerEsp; }
+    public PlayerEsp playerEsp() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : playerEsp; }
+    public Performance performance() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : performance; }
 
-    public SlowSwing slowSwing() { return slowSwing; }
+    public SlowSwing slowSwing() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : slowSwing; }
 
     public WTap wTap() { return wTap; }
 
@@ -554,32 +558,33 @@ public final class ModuleManager {
 
     public PacketLogger packetLogger() { return packetLogger; }
 
-    public LogoutSpots logoutSpots() { return logoutSpots; }
+    public LogoutSpots logoutSpots() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : logoutSpots; }
 
-    public BreadCrumbs breadCrumbs() { return breadCrumbs; }
+    public BreadCrumbs breadCrumbs() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : breadCrumbs; }
 
-    public Skeleton skeleton() { return skeleton; }
+    public Skeleton skeleton() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : skeleton; }
 
-    public NoWeather noWeather() { return noWeather; }
+    public NoWeather noWeather() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : noWeather; }
 
-    public OldPotions oldPotions() { return oldPotions; }
+    public OldPotions oldPotions() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : oldPotions; }
 
-    public ViewClip viewClip() { return viewClip; }
+    public ViewClip viewClip() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : viewClip; }
 
-    public SmallShield smallShield() { return smallShield; }
+    public SmallShield smallShield() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : smallShield; }
 
-    public ViewModel viewModel() { return viewModel; }
+    public ViewModel viewModel() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : viewModel; }
 
-    public ExtraTab extraTab() { return extraTab; }
+    public ExtraTab extraTab() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : extraTab; }
 
-    public InventoryInfo inventoryInfo() { return inventoryInfo; }
+    public InventoryInfo inventoryInfo() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : inventoryInfo; }
 
-    public BetterChat betterChat() { return betterChat; }
+    public BetterChat betterChat() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : betterChat; }
 
-    public boolean needsProjection() { return projectionNeeded; }
+    public boolean needsProjection() { return projectionNeeded && !dev.bytephase.render.capture.StreamProof.isCleanFrame(); }
 
     /** Runs the sky shader pass at {@code START_MAIN}, after vanilla sky. */
     public void renderSky() {
+        if (dev.bytephase.render.capture.StreamProof.isCleanFrame()) return;
         SkyShaders sky = skyShaders;
         if (sky == null) {
             return;
@@ -617,6 +622,7 @@ public final class ModuleManager {
     }
 
     public void render2D(DrawContext context, float tickDelta) {
+        if (dev.bytephase.render.capture.StreamProof.isCleanFrame()) return;
         dev.bytephase.render.OverlayLabels.beginFrame();
         List<Module> active = activeHud;
         if (active.isEmpty()) {
@@ -660,6 +666,7 @@ public final class ModuleManager {
     }
 
     public void render3D(MatrixStack matrices, VertexConsumerProvider consumers, float tickDelta) {
+        if (dev.bytephase.render.capture.StreamProof.isCleanFrame()) return;
         for (Module module : activeFrame) {
             if (!module.isEnabled()) {
                 continue;

@@ -1,0 +1,15 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "bytephase:outfit_semibold.ttf",
+      "shift": [0, 0],
+      "size": 10,
+      "oversample": 8
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}

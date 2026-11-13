@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class GameRendererMixin {
     @Inject(method = "close", at = @At("HEAD"))
     private void bytephase$disposeRenderResources(CallbackInfo ci) {
+        dev.bytephase.render.capture.StreamProof.close();
         RenderResources.dispose();
     }
 

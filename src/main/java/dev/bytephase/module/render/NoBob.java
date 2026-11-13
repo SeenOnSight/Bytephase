@@ -11,6 +11,8 @@ public final class NoBob extends Module {
         super("NoBob", Category.RENDER, "Disables view bobbing");
     }
 
+    public boolean originalBob() { return changed; }
+
     @Override
     protected void onEnable() {
         var mc = BytePhase.mc;

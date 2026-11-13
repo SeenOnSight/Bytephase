@@ -10,6 +10,7 @@ import com.google.gson.stream.JsonToken;
 import dev.bytephase.BytePhase;
 import dev.bytephase.module.Module;
 import dev.bytephase.setting.BooleanSetting;
+import dev.bytephase.setting.ActionKeySetting;
 import dev.bytephase.setting.ColorSetting;
 import dev.bytephase.setting.ModeSetting;
 import dev.bytephase.setting.NumberSetting;
@@ -341,29 +342,58 @@ public final class ProfileManager {
             // Ensure a saved profile meets exactly the same limits as a loaded one.
             parse(json);
 
-            try (ProfileDirectory directory = openDirectory(true)) {
-                Path target = Path.of(name + ".json");
-                boolean existing = directory.regularFile(target);
-                List<String> names = list(directory);
-                if (names.stream().anyMatch(saved -> saved.equalsIgnoreCase(name) && !saved.equals(name))) {
-                    throw new IllegalArgumentException("Use the existing profile name's letter case.");
-                }
-                if (!existing && names.size() >= MAX_PROFILES) {
-                    throw new IllegalStateException("Profile limit reached (128).");
-                }
-                try (TemporaryProfile temporary = privateTemporary(directory)) {
-                    SeekableByteChannel channel = temporary.channel();
-                    ByteBuffer data = ByteBuffer.wrap(bytes);
-                    while (data.hasRemaining()) channel.write(data);
-                    if (channel instanceof FileChannel file) file.force(true);
-                    channel.close();
-                    directory.move(temporary.filename(), target);
-                }
-            }
+            writeProfile(name, bytes);
         } catch (IOException | SecurityException error) {
             throw new IOException("Could not save profile. Check storage access, size and available space.", error);
         } catch (RuntimeException error) {
             throw new IllegalStateException("Could not save profile. Check settings and the 128-profile limit.", error);
+        }
+    }
+
+    /** Copies a validated profile to the user's clipboard through the UI. */
+    public synchronized String exportProfile(String name) throws IOException {
+        validateName(name);
+        requireClientThread();
+        try (ProfileDirectory directory = openDirectory(false)) {
+            if (directory == null) throw new IOException("No saved profile with that name.");
+            Path source = Path.of(name + ".json");
+            if (!directory.regularFile(source)) throw new IOException("No saved profile with that name.");
+            String json = read(directory, source);
+            plan(parse(json));
+            return json;
+        }
+    }
+
+    /** Imports a native Bytephase profile without applying it to the current session. */
+    public synchronized void importProfile(String name, String json) throws IOException {
+        validateName(name);
+        requireClientThread();
+        if (json == null || json.length() > MAX_BYTES) throw new IllegalArgumentException("Profile is too large.");
+        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length > MAX_BYTES) throw new IllegalArgumentException("Profile is too large.");
+        plan(parse(json));
+        writeProfile(name, bytes);
+    }
+
+    private void writeProfile(String name, byte[] bytes) throws IOException {
+        try (ProfileDirectory directory = openDirectory(true)) {
+            Path target = Path.of(name + ".json");
+            boolean existing = directory.regularFile(target);
+            List<String> names = list(directory);
+            if (names.stream().anyMatch(saved -> saved.equalsIgnoreCase(name) && !saved.equals(name))) {
+                throw new IllegalArgumentException("Use the existing profile name's letter case.");
+            }
+            if (!existing && names.size() >= MAX_PROFILES) {
+                throw new IllegalStateException("Profile limit reached (128).");
+            }
+            try (TemporaryProfile temporary = privateTemporary(directory)) {
+                SeekableByteChannel channel = temporary.channel();
+                ByteBuffer data = ByteBuffer.wrap(bytes);
+                while (data.hasRemaining()) channel.write(data);
+                if (channel instanceof FileChannel file) file.force(true);
+                channel.close();
+                directory.move(temporary.filename(), target);
+            }
         }
     }
 
@@ -605,6 +635,14 @@ public final class ProfileManager {
             double saved = primitive.getAsDouble();
             if (!Double.isFinite(saved) || saved < number.getMin() || saved > number.getMax()
                     || (saved == 0.0 && primitive.getAsBigDecimal().signum() != 0)) throw invalid();
+        } else if (setting instanceof ActionKeySetting) {
+            if (!primitive.isNumber()) throw invalid();
+            try {
+                int key = primitive.getAsBigDecimal().intValueExact();
+                if (!(key == -1 || key >= 32 && key <= 348 || key >= 1000 && key <= 1007)) throw invalid();
+            } catch (ArithmeticException | NumberFormatException error) {
+                throw invalid();
+            }
         } else if (setting instanceof ColorSetting) {
             if (!primitive.isNumber()) throw invalid();
             try {

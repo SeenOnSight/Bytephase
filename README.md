@@ -3,7 +3,7 @@
   <h1>Bytephase</h1>
   <p><strong>Explore farther. Keep your bearings. Make the everyday easier.</strong></p>
   <p>A Fabric utility client for Minecraft, built for personal play on 2b2t.</p>
-  <p><strong>0.2.2</strong> &nbsp;·&nbsp; Minecraft <strong>1.21.11</strong> &nbsp;·&nbsp; Fabric &nbsp;·&nbsp; MIT</p>
+  <p><strong>0.2.3</strong> &nbsp;·&nbsp; Minecraft <strong>1.21.11</strong> &nbsp;·&nbsp; Fabric</p>
   <p>
     <a href="#features">Features</a> &nbsp;·&nbsp;
     <a href="#install">Install</a> &nbsp;·&nbsp;
@@ -19,9 +19,9 @@
 
 A compact module system, a searchable ClickGUI and the matching binary `[01]`
 HUD mark. Gameplay and exploration utilities sit alongside the existing ESP,
-model effects, shaders and general visuals. The current catalog contains **101 modules**.
-Aim assistance requires held attack and normal reach; repeated attacks respect
-Minecraft's full attack cooldown.
+model effects, shaders and general visuals. The 0.2.3 catalog contains
+**124 modules**, including 25 imported PvP modules. Gameplay testing remains
+pending. See [PvP modules and controls](docs/PVP_IMPORT.md).
 
 | For | Tools | What they do |
 | --- | --- | --- |
@@ -40,6 +40,9 @@ Trading stops if explicit server inventory confirmation is unavailable.
 See the [exploration guide](docs/EXPLORATION.md) for defaults and workflows.
 
 ## Install
+
+The published release is **0.2.2**. Build **0.2.3** from this source tree for
+the new PvP and UI changes; see the [PvP guide](docs/PVP_IMPORT.md).
 
 1. Create a **Minecraft 1.21.11** installation with **Fabric Loader 0.20.1 or newer**.
 2. Download [`bytephase-0.2.2.jar`](https://github.com/SeenOnSight/Bytephase/releases/download/v0.2.2/bytephase-0.2.2.jar)
@@ -60,14 +63,14 @@ Use **Java 25** for the configured Loom build. The mod itself targets
 ./gradlew build
 ```
 
-Output: `build/libs/bytephase-0.2.2.jar`.
+Output for this working tree: `build/libs/bytephase-0.2.3.jar`.
 
 <details>
 <summary><strong>Build versions</strong></summary>
 
 | Component | Configured version |
 | --- | --- |
-| Bytephase | `0.2.2` |
+| Bytephase working tree | `0.2.3` |
 | Minecraft | `1.21.11` |
 | Yarn mappings | `1.21.11+build.6` |
 | Fabric Loader | `0.20.1` |
@@ -88,10 +91,11 @@ Version sources: [gradle.properties](gradle.properties),
 | --- | --- |
 | Open / close ClickGUI | **Right Shift**, or the configured ClickGUI key |
 | Toggle a module | Left-click its row |
-| Expand settings and bind | Click the row's `+` |
+| Open module settings and bind | Right-click its card |
 | Assign / clear a bind | Click **Bind**, then a key / **Escape** |
-| Move / collapse a panel | Drag / right-click its header |
-| Find a module | Type in the bottom search field |
+| Choose a category | Click the sidebar |
+| Find a module | Type in the top-right search field; Ctrl+F focuses it |
+| Choose UI and HUD fonts | Settings → UIFont / HUDFont |
 | Open profiles | `/bytephase profile` |
 | Show command help | `/bytephase` |
 
@@ -100,12 +104,22 @@ also appear in vanilla **Controls → Bytephase**. TradeAssist's bind works whil
 an open merchant screen has focus. More UI details and module-specific behavior
 are in the [module guide](docs/MODULE_GUIDE.md).
 
+## PvP component
+
+Version 0.2.3 adds all 25 combat modules from the supplied archive, stationary
+AimAssist, configurable Triggerbot timing, FakeLag visualization, sword obsidian
+placement and throwable trajectories. It also includes the glass ClickGUI,
+distance-field fonts and corrected icon rendering.
+See [the PvP guide](docs/PVP_IMPORT.md) for modules, action binds and friends.
+
 ## Compact overlays
 
-Render controls start in six collapsible groups: **ESP**, **Discovery**, **HUD**,
-**Camera**, **Effects** and **Environment**. Click a group to open it; searching
-also reveals matching modules inside collapsed groups. Disable
-`Appearance → CompactRender` to show individual rows.
+The ClickGUI uses the supplied glass design with sidebar navigation, rounded
+module cards and modal settings. **Configs**, **Friends**, **Themes** and
+**Settings** connect to the live client. Settings offers Inter, Outfit,
+JetBrains Mono and Minecraft,
+with separate font selections for the UI and HUD.
+See [ClickGUI controls and fonts](docs/CLICKGUI.md).
 
 `ArrayList → CompactRender` combines enabled render modules into group counts;
 `MaxRows` caps its height. `Appearance → WorldLabelLimit` and

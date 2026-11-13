@@ -83,9 +83,7 @@ public final class Tracers extends Module {
             }
         }
 
-        // Starting at the camera plane made every line's first vertex
-        // degenerate; a point just in front of and below the eye keeps the
-        // tracers anchored at the crosshair and visible.
+        // The origin unprojects screen center using this frame's full matrices.
         Vec3d origin = RenderBox.tracerOrigin();
         boolean walls = throughWalls.getValue();
         RenderBox.drawLinesFrom(origin, playerTargets, playerColor.getValue(), walls);

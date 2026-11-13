@@ -51,6 +51,7 @@ public abstract class WorldRendererMixin {
             target = "Lnet/minecraft/client/render/entity/EntityRenderManager;shouldRender(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/render/Frustum;DDD)Z"))
     private boolean bytephase$renderDistantEspTarget(EntityRenderManager manager, Entity entity, Frustum frustum,
                                                        double x, double y, double z, Operation<Boolean> original) {
+        if (dev.bytephase.module.render.Performance.cullItem(entity, x, y, z)) return false;
         if (original.call(manager, entity, frustum, x, y, z)) return true;
         var esp = BytePhase.modules == null ? null : BytePhase.modules.playerEsp();
         return esp != null && esp.shouldRenderHiddenModel(entity)

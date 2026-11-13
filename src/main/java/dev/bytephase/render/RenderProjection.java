@@ -23,6 +23,8 @@ public final class RenderProjection {
     private static final Matrix4f PROJECTION = new Matrix4f();
     private static final Matrix4f VIEW = new Matrix4f();
     private static final Matrix4f VIEW_PROJECTION = new Matrix4f();
+    private static final Matrix4f TRACER_INVERSE = new Matrix4f();
+    private static final Vector4f TRACER_CENTER = new Vector4f();
     private static final FrustumIntersection FRUSTUM = new FrustumIntersection();
     private static final Quaternionf CAMERA_ROTATION = new Quaternionf();
     private static final Quaternionf INVERSE_CAMERA_ROTATION = new Quaternionf();
@@ -85,6 +87,16 @@ public final class RenderProjection {
         forward[2] = -VIEW.m22();
     }
 
+    /** A camera-relative point projecting to the crosshair under the full world transform. */
+    public static Vec3d crosshairOrigin() {
+        // Include projection translations/rotations from view bob and hurt tilt.
+        // A camera-forward offset alone does not cancel those transforms.
+        VIEW_PROJECTION.invert(TRACER_INVERSE);
+        Vector4f point = TRACER_CENTER.set(0.0f, 0.0f, 0.5f, 1.0f);
+        TRACER_INVERSE.transform(point);
+        return cameraPos.add(point.x / point.w, point.y / point.w, point.z / point.w);
+    }
+
     public static float tickDelta() {
         return tickDelta;
     }
@@ -145,14 +157,18 @@ public final class RenderProjection {
      * @return null when the point is behind the camera.
      */
     public static double[] project(Vec3d worldPos) {
+        return project(worldPos.x, worldPos.y, worldPos.z);
+    }
+
+    public static double[] project(double worldX, double worldY, double worldZ) {
         // Camera.getRotation() maps camera-local axes into world space. Apply
         // its inverse to the world-relative point; the WorldRenderer view
         // matrix is tailored for the GPU pipeline and may include additional
         // camera transforms that must not be applied to a HUD projection.
         Vector3f viewPos = PROJECT_VIEW_POS.set(
-                (float) (worldPos.x - cameraPos.x),
-                (float) (worldPos.y - cameraPos.y),
-                (float) (worldPos.z - cameraPos.z));
+                (float) (worldX - cameraPos.x),
+                (float) (worldY - cameraPos.y),
+                (float) (worldZ - cameraPos.z));
         INVERSE_CAMERA_ROTATION.transform(viewPos);
         float depth = -viewPos.z;
         if (depth <= 0.01f) {

@@ -21,6 +21,10 @@ public final class TimeChanger extends Module {
         super("TimeChanger", Category.RENDER, "Changes the client-side time of day");
     }
 
+    public long originalTime(ClientWorld world) {
+        return hadPrevious && modifiedWorld == world ? previousTime : world.getLevelProperties().getTimeOfDay();
+    }
+
     @Override
     public void onEnable() {
         var mc = BytePhase.mc;

@@ -228,6 +228,10 @@ public final class ProfileScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        dev.bytephase.render.ClientFonts.ui(() -> renderProfile(context, mouseX, mouseY, delta));
+    }
+
+    private void renderProfile(DrawContext context, int mouseX, int mouseY, float delta) {
         context.fill(0, 0, width, height, 0xE6111119);
         context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, Theme.PANEL);
         centered(context, title.getString(), panelY + 10, Theme.ACCENT);

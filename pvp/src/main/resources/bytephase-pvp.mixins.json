@@ -1,0 +1,38 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.bytephase.pvp.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AccessorAbstractContainerScreen",
+    "AccessorCombatMinecraft",
+    "AccessorElytraFlyMultiPlayerGameMode",
+    "AccessorLocalPlayer",
+    "AccessorMovementClientInput",
+    "AccessorTriggerbotKeyMapping",
+    "MixinAutoCityMinecraft",
+    "MixinClientConnection",
+    "MixinClientPacketListener",
+    "MixinCrystalMacroMultiPlayerGameMode",
+    "MixinFriendGuardMultiPlayerGameMode",
+    "MixinKeyboardHandler",
+    "MixinLocalPlayer",
+    "MixinMaceMultiPlayerGameMode",
+    "MixinMouseHandler",
+    "MixinMovementCorrectionKeyboardInput",
+    "MixinMultiPlayerGameMode",
+    "MixinPlayer",
+    "MixinRotationMultiPlayerGameMode",
+    "MixinSwordObsidianMinecraft",
+    "AccessorMouseHandler",
+    "MarlowClientLevelMixin",
+    "MarlowEndCrystalItemMixin",
+    "MarlowEndCrystalMixin",
+    "MarlowLevelMixin",
+    "MarlowMinecraftMixin",
+    "MarlowMultiPlayerGameModeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

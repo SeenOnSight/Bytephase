@@ -26,6 +26,7 @@ public final class SprintReset extends Module {
 
     @Override
     public void onAttack(PlayerEntity self, Entity target) {
+        if (CombatIntegration.enabled("WTap")) return;
         var mc = BytePhase.mc;
         if (mc == null || mc.player != self) {
             return;

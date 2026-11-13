@@ -30,6 +30,8 @@ public final class AutoWeapon extends Module {
 
     @Override
     public void onBeforeAttack(PlayerEntity self, net.minecraft.entity.Entity target) {
+        if (CombatIntegration.enabled("Mace") || CombatIntegration.enabled("ShieldBreaker")
+                || CombatIntegration.enabled("SpearSwap")) return;
         if (!(target instanceof LivingEntity)) {
             return;
         }

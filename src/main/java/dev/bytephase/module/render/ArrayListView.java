@@ -21,6 +21,8 @@ public final class ArrayListView extends Module {
     private List<Module> cachedEnabled;
     private final java.util.Map<Module, String> cachedText = new java.util.IdentityHashMap<>();
     private boolean cachedCompact;
+    private net.minecraft.client.font.TextRenderer cachedRenderer;
+    private String cachedFont = "";
 
     private record Entry(String name, int width) { }
 
@@ -29,13 +31,19 @@ public final class ArrayListView extends Module {
     }
 
     @Override
-    public void onRender2D(DrawContext context, float tickDelta) {
+    public void onTick() {
+        refreshEntries();
+    }
+
+    private void refreshEntries() {
         MinecraftClient mc = BytePhase.mc;
         if (mc == null) {
             return;
         }
         List<Module> enabled = BytePhase.modules.enabled();
-        boolean changed = enabled != cachedEnabled || cachedCompact != compactRender.getValue();
+        boolean changed = enabled != cachedEnabled || cachedCompact != compactRender.getValue()
+            || cachedRenderer != mc.textRenderer
+            || !cachedFont.equals(dev.bytephase.render.ClientFonts.hudName());
         if (!changed) {
             for (Module module : enabled) {
                 String text = module.getHudText();
@@ -53,6 +61,7 @@ public final class ArrayListView extends Module {
                 String name = module.getHudText();
                 cachedText.put(module, name);
                 if (module == this) continue;
+                if (name.isEmpty()) continue;
                 if (compactRender.getValue() && module.getCategory() == Category.RENDER) {
                     groups.merge(RenderGroups.of(module), 1, Integer::sum);
                 } else {
@@ -67,6 +76,19 @@ public final class ArrayListView extends Module {
             cachedEntries = List.copyOf(entries);
             cachedEnabled = enabled;
             cachedCompact = compactRender.getValue();
+            cachedRenderer = mc.textRenderer;
+            cachedFont = dev.bytephase.render.ClientFonts.hudName();
+        }
+    }
+
+    @Override
+    public void onRender2D(DrawContext context, float tickDelta) {
+        MinecraftClient mc = BytePhase.mc;
+        if (mc == null) return;
+        if (cachedEnabled != BytePhase.modules.enabled() || cachedCompact != compactRender.getValue()
+                || cachedRenderer != mc.textRenderer
+                || !cachedFont.equals(dev.bytephase.render.ClientFonts.hudName())) {
+            refreshEntries();
         }
         int y = 2;
         int limit = Math.min(maxRows.asInt(), Math.max(1, (mc.getWindow().getScaledHeight() - 8) / 10));

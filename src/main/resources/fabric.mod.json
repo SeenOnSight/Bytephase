@@ -12,10 +12,12 @@
   },
   "icon": "assets/bytephase/icon.png",
   "mixins": ["bytephase.mixins.json"],
+  "jars": [{"file": "META-INF/jars/bytephase-pvp-${version}.jar"}],
   "depends": {
     "fabricloader": ">=0.20.1",
     "minecraft": "~1.21.11",
     "java": ">=21",
-    "fabric-api": "*"
+    "fabric-api": "*",
+    "bytephase-pvp": "*"
   }
 }

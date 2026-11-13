@@ -79,7 +79,8 @@ public final class HotbarArrange extends Module {
             return;
         }
         if (mc.player.isUsingItem() || mc.options.attackKey.isPressed() || mc.options.useKey.isPressed()
-                || mc.interactionManager.isBreakingBlock() || mc.player.hurtTime > 0) {
+                || mc.interactionManager.isBreakingBlock() || mc.player.hurtTime > 0
+                || dev.bytephase.module.combat.CombatIntegration.enabled("AutoInventoryTotem")) {
             quietTicks = QUIET_TICKS;
             return;
         }

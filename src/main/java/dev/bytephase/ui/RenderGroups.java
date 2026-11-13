@@ -16,7 +16,7 @@ public final class RenderGroups {
             case "Fullbright", "TimeChanger", "NoRender", "NoWeather", "SkyShaders",
                     "OldPotions", "Performance" -> "Environment";
             case "BreadCrumbs", "TargetFX", "Hitmarker", "Highlight", "MiningProgress",
-                    "Trajectories", "DamageMarkers", "HitSounds" -> "Effects";
+                    "Trajectories", "ThrowableTrajectory", "DamageMarkers", "HitSounds" -> "Effects";
             default -> "HUD";
         };
     }

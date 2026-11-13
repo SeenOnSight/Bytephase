@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "bytephase-pvp",
+  "version": "${version}",
+  "name": "Bytephase PvP",
+  "environment": "client",
+  "license": "GPL-3.0-only",
+  "entrypoints": {
+    "bytephase:pvp": ["dev.bytephase.pvp.CombatIntegration"]
+  },
+  "mixins": ["bytephase-pvp.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

@@ -17,6 +17,10 @@ public final class Fullbright extends Module {
         super("Fullbright", Category.RENDER, "Maximizes ambient brightness");
     }
 
+    public double originalGamma() {
+        return previous >= 0 ? previous : BytePhase.mc.options.getGamma().getValue();
+    }
+
     @Override
     public void onEnable() {
         var mc = BytePhase.mc;

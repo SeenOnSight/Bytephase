@@ -299,7 +299,7 @@ and up to five visible profile rows.
 Profile names accept 1–32 ASCII letters, digits, underscores or dashes.
 Storage is limited to 128 profiles and 1 MiB per file.
 
-Profiles contain module enabled states and Boolean, number, mode and colour
+Profiles contain module enabled states and Boolean, number, mode, colour and action-key
 settings. Keybinds, ClickGUI layout, coordinates and server identifiers are
 outside the profile snapshot. Loading validates the document before applying
 it, preserves omitted settings/modules, and ignores well-formed unknown

@@ -2,27 +2,29 @@
 
 [Home](../README.md) · [Exploration & workflows](EXPLORATION.md) · [Adding modules](ADDING_MODULES.md)
 
-Bytephase 0.2.2 includes 101 discovery, visual, inventory and input-assistance modules.
-The current catalog uses normal interaction reach and movement inputs. Packet
-spoofing, movement amplification, automatic combat and collision bypass modules
-have been removed from the source and release JAR.
+Bytephase 0.2.3 includes 124 modules. Its 25 imported combat
+modules include automated PvP and packet delay options. Gameplay testing
+remains pending. See the [PvP guide](PVP_IMPORT.md).
 
 ## Controls
 
 - `Right Shift` opens the ClickGUI. The configured ClickGUI key also closes it.
-- The GUI is a set of floating category panels. Drag a panel header to move it,
-  right-click a header to collapse it, and scroll inside a panel to move
-  through its modules.
-- Left-click a module to toggle it. Click the small `+` on the right of a
-  module row to open its settings and keybind row. Modules without settings
-  still expose the bind row.
-- Inside an expanded module, click `Bind` and press a key to bind it. `Escape`
-  clears the bind.
-- Click the search bar at the bottom of the ClickGUI and type a module name to
-  filter the panels. Enter or Escape leaves the search field; backspace edits it
-  and Ctrl+Backspace clears it.
-- The UI panel's Appearance entry controls ClickGUI accent and text colours,
-  bold headers and text shadows. These settings apply even when the entry is off.
+- The supplied glass UI is now a centered native screen. Choose a category in
+  its sidebar, then scroll the two-column module cards.
+- Left-click a module card to toggle it; right-click opens its settings dialog.
+  Scroll inside long dialogs. Close or Escape returns to the cards.
+- In a module dialog, click `Keybind` and press a key. Escape, Backspace,
+  Delete or right-click clears it.
+- Search is at the top right and searches all categories. Ctrl+F focuses it;
+  standard editing and clipboard shortcuts work. Arrow keys select cards;
+  Enter/Space toggles the selection and Shift+Enter opens its settings.
+- **Themes** contains accent presets and text colour. **Settings** contains
+  panel opacity, background blur and font choices. **UIFont** and **HUDFont** independently offer Inter,
+  Outfit, JetBrains Mono and Minecraft. HUDFont applies to the array list,
+  coordinates and the other Bytephase HUD labels.
+- **Configs** saves, loads, overwrites, copies, imports and deletes native
+  profiles. **Friends** edits the existing combat friend list.
+  See [ClickGUI and fonts](CLICKGUI.md).
 - InventoryMove permits forward, back, sideways, jump and sprint input in
   inventory/container screens; creative inventory and focused text fields are
   excluded. Servers may reject movement while a container is open.
@@ -61,10 +63,15 @@ loaded evidence becomes invalid. Existing visual styles are covered below.
 
 ## Input assistance
 
-- **AimAssist** runs while attack is held, the game has focus and a visible
-  target is inside the configured field of view. Effective range is capped by
-  normal entity interaction reach. Camera turning is smoothed and leaves your
-  mouse input in control.
+- **AimAssist** follows enemy players inside its field of view, including while
+  the mouse is still, with weapon and vertical controls. Moving the mouse away
+  from a target pauses assistance on that axis for that frame. Menus, lost
+  focus, item use, mining and another module's rotation/hotbar ownership pause it.
+- **SwordObsidian** switches from a held sword to obsidian in the hotbar when
+  you use the top face of the ground. The same click performs normal block
+  placement. **Switch Back** optionally restores the sword after the action;
+  it is off by default. Missing obsidian or an occupied placement cell skips
+  the switch.
 - **AutoClicker** repeats normal crosshair attacks while attack is held. It
   always waits for the full vanilla attack cooldown and shares the one-attack
   per-tick guard with vanilla input.
@@ -81,6 +88,9 @@ loaded evidence becomes invalid. Existing visual styles are covered below.
   workflows are described in the exploration guide.
 
 ## ESP, shaders & HUD
+
+- `Tracers` starts every line at the crosshair using the full world projection,
+  including view bobbing and hurt tilt.
 
 - `Fullbright` and `NoBob` restore vanilla options when disabled and when the
   game exits normally. A hard crash can leave the option values changed.
@@ -220,7 +230,7 @@ for measured scan completion and performance limits.
 | DamageMarkers | Floating observed health-loss values for your last attacked target and optionally yourself. Nearby damage defaults off; at most 64 live markers. |
 | TargetHUD | Health, distance and held items for the last attacked living entity. Position is configurable; target expires after 80 ticks. |
 | SmoothCamera | Vanilla cinematic mouse smoothing, with the previous setting restored on disable. |
-| Performance | Balanced chunk updates preserve immediate player edits; Threaded can delay visible terrain updates. Optional streaming FPS limit only lowers the existing limit. Stored video preferences remain intact. |
+| Performance | Configurable particle budget and distance, plus distant dropped-item culling. Defaults: 128 new particles per tick, 48-block particle/item distance. Also controls chunk scheduling and an optional streaming FPS cap. See [performance controls](PERFORMANCE.md). |
 | MotionScanner | Groups explicit zero-filled received skylight arrays below sea level. Empty masks are not anomalies. Cluster size defaults to one; discovery processing runs while you are above Y 0. |
 | PrimeChunkFinder | Tracks received underground block-light increases and redstone changes. Initial loaded light is a baseline. Ignores nearby player activity, visited underground chunks, and changes near lava or glowing amethyst. |
 | SpawnerFinder | Scans two loaded chunks per tick, starting nearby. Shows exact spawner positions and available mob names. Trial spawners default off. |
@@ -232,10 +242,8 @@ They report candidates; natural generation and server lighting policies can
 produce similar signals. PrimeChunkFinder currently considers light increases
 below Y 0, rather than every received light change.
 
-Appearance settings apply even when the Appearance entry is disabled. Compact
-render groups and expansion state are saved with the existing ClickGUI layout.
-Search opens matching groups without changing saved expansion state. The
-existing module names, settings and keybind IDs are preserved.
+Appearance settings apply whenever the interface or HUD draws. The selected
+sidebar category and its scroll positions are saved in the ClickGUI layout.
 
 ## Fixed in 0.2.2
 
@@ -243,3 +251,8 @@ The discovery overlay's default style is now `Box`, the supported outline-only
 mode. Version 0.2.1 used the unregistered name `Outline`, causing construction
 of MotionScanner to fail before the client finished initializing. This shared
 default also applies to PrimeChunkFinder and SpawnerFinder.
+
+## Local PvP changes in 0.2.3
+
+See [the import guide](PVP_IMPORT.md) for the full 25-module list, replacement
+modules, action binds, friend commands and local build instructions.

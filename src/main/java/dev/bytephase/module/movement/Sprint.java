@@ -25,7 +25,8 @@ public final class Sprint extends Module {
             return;
         }
         WTap wTap = BytePhase.modules == null ? null : BytePhase.modules.wTap();
-        if (wTap != null && wTap.masking()) {
+        if (wTap != null && wTap.masking()
+                || dev.bytephase.module.combat.CombatIntegration.sprintSuppressed()) {
             mc.player.setSprinting(false);
             return;
         }

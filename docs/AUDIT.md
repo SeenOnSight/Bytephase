@@ -1,5 +1,37 @@
 # Bytephase debugging and performance notes
 
+## Version 0.2.3 — 2026-11-13
+
+The committed 0.2.3 source consolidates the local development builds through
+0.2.5. This includes stationary AimAssist, sword obsidian placement, throwable
+trajectories, macro pacing controls, the glass ClickGUI, distance-field text,
+corrected icon sampling, configurable Triggerbot cooldown and FakeLag's
+server-position and packet-queue overlays. The catalog now contains 124 modules.
+
+The supplied Marlow optimizer 2.0.0 JAR is also integrated as MarlowOptimizer,
+with gated hooks, KeepRender, retained-crystal cleanup and the source's server
+opt-out protocol. See [module details](MARLOW_OPTIMIZER.md). It is mutually
+exclusive with the previous CrystalOptimizer implementation.
+
+The first user test failed during initialization: the combat mixin configuration
+declared `dev.bytephase.pvp` as its package, reserving the API and implementation
+classes as mixins. The declaration is now limited to `dev.bytephase.pvp.mixin`;
+all 19 mixins, including the relocated mouse accessor, reside in that package.
+The rebuilt JAR awaits another user launch.
+
+The supplied archive's 25 combat modules and their required helpers/hooks are
+imported into a separate combat component. It is remapped and embedded in the
+main JAR. Five previous combat registrations are replaced and 20 new ones are
+added, followed by MarlowOptimizer, for 122 modules. The existing GUI and config/profile system own their
+controls; action binds, conditional settings and friend commands are included.
+
+The required combat mixins are remapped to the runtime namespace. The component
+uses native HUD drawing and the shared label budget. Utility weapon, sprint and
+inventory helpers yield to the matching imported combat owners.
+
+The production JAR builds locally. No game launch or gameplay tests were run
+for these changes. See [the PvP guide](PVP_IMPORT.md).
+
 ## Version 0.2.2 — 2026-11-12
 
 Fixed the reported initialization crash in the shared discovery overlay. Its

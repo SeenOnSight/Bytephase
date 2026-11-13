@@ -41,23 +41,29 @@ public final class BytePhaseClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> BytePhase.config.load());
 
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
+            dev.bytephase.module.combat.CombatIntegration.beginTick();
             InventoryMove inventoryMove = BytePhase.modules.get(InventoryMove.class);
             if (inventoryMove != null && inventoryMove.isEnabled()) inventoryMove.updateKeys();
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             Keybinds.tick(client);
-            BytePhase.modules.tick();
+            dev.bytephase.render.ClientFonts.hud(BytePhase.modules::tick);
+            dev.bytephase.module.combat.CombatIntegration.endTick();
             BytePhase.config.tick();
             BytePhase.locations.tick();
         });
 
         HudElementRegistry.addLast(Identifier.of("bytephase", "hud"), (context, counter) -> {
+            if (dev.bytephase.render.capture.StreamProof.isCleanFrame()) return;
             if (BytePhase.mc.options.hudHidden) {
                 RenderBox.clearFrame();
                 return;
             }
-            BytePhase.modules.render2D(context, counter == null ? 0.0f : counter.getTickProgress(false));
+            dev.bytephase.render.ClientFonts.hud(() -> {
+                BytePhase.modules.render2D(context, counter == null ? 0.0f : counter.getTickProgress(false));
+                dev.bytephase.module.combat.CombatIntegration.renderHud(context, counter == null ? 0.0f : counter.getTickProgress(false));
+            });
         });
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
@@ -72,11 +78,18 @@ public final class BytePhaseClient implements ClientModInitializer {
 
         WorldRenderEvents.START_MAIN.register(context -> BytePhase.modules.renderSky());
 
-        WorldRenderEvents.END_MAIN.register(context ->
-                BytePhase.modules.render3D(context.matrices(), context.consumers(),
+        WorldRenderEvents.END_MAIN.register(context -> {
+            float delta = dev.bytephase.render.RenderProjection.tickDelta();
+            BytePhase.modules.render3D(context.matrices(), context.consumers(), delta);
+            dev.bytephase.module.combat.CombatIntegration.renderWorldOverlays(
+                context.matrices(), context.consumers(), delta);
+        });
+        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(context ->
+                dev.bytephase.module.combat.CombatIntegration.renderWorld(
                         dev.bytephase.render.RenderProjection.tickDelta()));
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            dev.bytephase.render.capture.StreamProof.close();
             for (Module module : BytePhase.modules.enabled()) {
                 module.shutdown();
             }

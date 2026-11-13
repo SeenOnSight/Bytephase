@@ -10,3 +10,4 @@ pluginManagement {
 }
 
 rootProject.name = 'bytephase'
+include 'pvp-api', 'pvp'

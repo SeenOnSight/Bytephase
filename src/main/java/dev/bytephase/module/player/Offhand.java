@@ -47,7 +47,9 @@ public final class Offhand extends Module {
         // AutoTotem takes precedence only when its selected mode currently
         // requires a totem. Otherwise this module can manage the chosen item.
         AutoTotem autoTotem = BytePhase.modules == null ? null : BytePhase.modules.get(AutoTotem.class);
-        if (autoTotem != null && autoTotem.shouldManageOffhand()) {
+        if (autoTotem != null && autoTotem.shouldManageOffhand()
+                || dev.bytephase.module.combat.CombatIntegration.enabled("AutoTotem")
+                || dev.bytephase.module.combat.CombatIntegration.enabled("AutoInventoryTotem")) {
             return;
         }
 
