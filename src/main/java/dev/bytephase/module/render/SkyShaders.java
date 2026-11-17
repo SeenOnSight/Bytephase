@@ -3,19 +3,19 @@ package dev.bytephase.module.render;
 import dev.bytephase.BytePhase;
 import dev.bytephase.module.Category;
 import dev.bytephase.module.Module;
-import dev.bytephase.render.sky.ClaritySkyRenderer;
+import dev.bytephase.render.sky.BytephaseSkyRenderer;
 import dev.bytephase.setting.BooleanSetting;
 import dev.bytephase.setting.ColorSetting;
 import dev.bytephase.setting.ModeSetting;
 import dev.bytephase.setting.NumberSetting;
 
 /**
- * Replaces the vanilla sky with one of the supplied Clarity sky shader
+ * Replaces the vanilla sky with one of the supplied Bytephase sky shader
  * presets. The shader files are unmodified; only the uniform source and
  * render timing are provided by BytePhase.
  */
 public final class SkyShaders extends Module {
-    private final ModeSetting preset = add(new ModeSetting("Preset", ClaritySkyRenderer.PRESETS, "Aurora"));
+    private final ModeSetting preset = add(new ModeSetting("Preset", BytephaseSkyRenderer.PRESETS, "Aurora"));
     private final NumberSetting speed = add(new NumberSetting("Speed", 1.0, 0.05, 3.0, 0.05));
     private final NumberSetting brightness = add(new NumberSetting("Brightness", 1.0, 0.1, 3.0, 0.05));
     private final NumberSetting intensity = add(new NumberSetting("Intensity", 1.0, 0.0, 3.0, 0.05));
@@ -29,7 +29,7 @@ public final class SkyShaders extends Module {
     private final BooleanSetting allDimensions = add(new BooleanSetting("AllDimensions", false));
 
     public SkyShaders() {
-        super("SkyShaders", Category.RENDER, "Replaces the sky with a supplied Clarity shader preset");
+        super("SkyShaders", Category.RENDER, "Replaces the sky with a supplied Bytephase shader preset");
     }
 
     public String preset() {
@@ -84,6 +84,6 @@ public final class SkyShaders extends Module {
         if (BytePhase.mc == null || BytePhase.mc.world == null) {
             return;
         }
-        ClaritySkyRenderer.render(this);
+        BytephaseSkyRenderer.render(this);
     }
 }

@@ -13,7 +13,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.Entity;
 
 /**
- * The Clarity shader crosshair, with a small primitive fallback for the rare
+ * The Bytephase shader crosshair, with a small primitive fallback for the rare
  * case where raw GL shader compilation fails.
  */
 public final class Crosshair extends Module {
@@ -53,7 +53,7 @@ public final class Crosshair extends Module {
     private boolean shaderFailed;
 
     public Crosshair() {
-        super("Crosshair", Category.RENDER, "Draws the supplied Clarity shader crosshair");
+        super("Crosshair", Category.RENDER, "Draws the supplied Bytephase shader crosshair");
     }
 
     public boolean hideVanilla() {

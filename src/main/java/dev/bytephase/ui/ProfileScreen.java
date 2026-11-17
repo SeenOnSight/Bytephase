@@ -232,7 +232,7 @@ public final class ProfileScreen extends Screen {
     }
 
     private void renderProfile(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.fill(0, 0, width, height, 0xE6111119);
+        context.fill(0, 0, width, height, 0xE6111111);
         context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, Theme.PANEL);
         centered(context, title.getString(), panelY + 10, Theme.ACCENT);
         if (compact) {

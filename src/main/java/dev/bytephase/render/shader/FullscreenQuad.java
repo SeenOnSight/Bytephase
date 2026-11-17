@@ -7,7 +7,7 @@ import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.system.MemoryUtil;
 
-/** Shared fullscreen triangle used by the Clarity post-processing passes. */
+/** Shared fullscreen triangle used by the Bytephase post-processing passes. */
 public final class FullscreenQuad {
     private static int vao;
     private static int vbo;

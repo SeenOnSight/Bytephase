@@ -43,20 +43,23 @@ public final class GlTarget {
         GlStateManager._activeTexture(GL13.GL_TEXTURE0);
         int previousTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
         texture = GlStateManager._genTexture();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
-        GlStateManager._bindTexture(texture);
-        GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
-        GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
-        GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
-        GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
-        int internalFormat = useFloat ? GL30.GL_RGBA16F : GL11.GL_RGBA8;
-        int type = useFloat ? GL11.GL_FLOAT : GL11.GL_UNSIGNED_BYTE;
-        GlStateManager._texImage2D(GL11.GL_TEXTURE_2D, 0, internalFormat,
-                requestedWidth, requestedHeight, 0, GL11.GL_RGBA, type, (ByteBuffer) null);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, previousTexture);
-        GlStateManager._bindTexture(previousTexture);
-        GL13.glActiveTexture(previousActive);
-        GlStateManager._activeTexture(previousActive);
+        try (GlPixelUnpack ignored = GlPixelUnpack.tightlyPacked()) {
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
+            GlStateManager._bindTexture(texture);
+            GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+            GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+            GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+            GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+            int internalFormat = useFloat ? GL30.GL_RGBA16F : GL11.GL_RGBA8;
+            int type = useFloat ? GL11.GL_FLOAT : GL11.GL_UNSIGNED_BYTE;
+            GlStateManager._texImage2D(GL11.GL_TEXTURE_2D, 0, internalFormat,
+                    requestedWidth, requestedHeight, 0, GL11.GL_RGBA, type, (ByteBuffer) null);
+        } finally {
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, previousTexture);
+            GlStateManager._bindTexture(previousTexture);
+            GL13.glActiveTexture(previousActive);
+            GlStateManager._activeTexture(previousActive);
+        }
 
         framebuffer = GlStateManager.glGenFramebuffers();
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer);

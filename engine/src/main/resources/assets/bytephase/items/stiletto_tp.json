@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      { "type": "minecraft:model", "model": "bytephase:item/stiletto_handle" },
+      { "type": "minecraft:model", "model": "bytephase:item/stiletto_blade" }
+    ]
+  }
+}

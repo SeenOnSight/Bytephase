@@ -1,0 +1,198 @@
+{
+  "source": "combat-source-archive",
+  "combatModules": [
+    {
+      "class": "module/impl/combat/AimAssistModule.java",
+      "sourceSha256": "39186123bab7b612bea5dcc63ce99930cdecacf04e623c3ceb7e38b19a01b772",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/AnchorAuraModule.java",
+      "sourceSha256": "0493e589d85ba22afb6b321d3baa9f41c7510ddd2bc7bb52f8fa4f8766526700",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/AutoCityModule.java",
+      "sourceSha256": "69ed4fd22356db923dbff205b039ce96715cdae979025006ee6d20853bcffbd7",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/AutoInvTotemModule.java",
+      "sourceSha256": "dbec28c573c3d6b874c6d04d87c5ac50e22f6ca79d05e8d9f4cf24ea9ce4a5f2",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/AutoTotemModule.java",
+      "sourceSha256": "d6e24f8a25008c0e6bced2841b672d6018ec584f0fb7ce5144ba2b9c7521549b",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/AutoTrapModule.java",
+      "sourceSha256": "2ea5a240f460fba74531da0ae9f1314a455e426e021cb598c93951dfa090ee27",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/CrystalAuraModule.java",
+      "sourceSha256": "aaf53f514eda287181a9d72b1001bdf534f206e2373861034233b2b08ecd3057",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/CrystalMacroModule.java",
+      "sourceSha256": "f1eedb2c6db314af00a86a8a0c2f3f6984211b8c6600edc11396ebbab03033fc",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/CrystalOptimizerModule.java",
+      "sourceSha256": "b5ce277acc147d2eff29407d09e6795131cdf1224eea67b4dad62f6e2f719e0c",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/FakeLagModule.java",
+      "sourceSha256": "e5102e4fecde8375c16cc36af61ccc5484dc80c7453cc45bd67e53ea3b066475",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/FastXpModule.java",
+      "sourceSha256": "9c51c645fd2ad4d1f1d945af44abef0d4213ed3204dd40d12940c8e9a897744f",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/FriendGuardModule.java",
+      "sourceSha256": "9c89cf6190dd2fbdd9dde261d28378ef266996ca2673997b1d7516f5feccf162",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/HoverTotemModule.java",
+      "sourceSha256": "ec5d6808b370a3afe3cd917d18ef3eca519e5ef26e4a7d417791f289e4497f2f",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/JumpResetModule.java",
+      "sourceSha256": "a8ef7413b6d831de5ed768ec92f180a0779002cfe000ceee03bba86a1149d2b4",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/KeyThrowModule.java",
+      "sourceSha256": "8b6d50949b126c12946c5daeb9c85034bb06ed6543ce53133b84e7b99a1e271e",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/KillAuraModule.java",
+      "sourceSha256": "acb3fc83a96b0444900b42353191a7fb9c7817150e5386aff0b1127d84fd582c",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/KnockbackDelayModule.java",
+      "sourceSha256": "8c3f9dc272cc4096fc4db2ffed54f427326de8f7a4cd9cbed08c2acb3184420c",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/MaceModule.java",
+      "sourceSha256": "bd7cee1133247d4f1c6ca45f0b9a31f70ce6dae26821b25b99f74d2fa1f00609",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/ShieldBreakerModule.java",
+      "sourceSha256": "bc9edbcf4128768e43dca879f6afa7f437eea08246db5680288e9e6bc7447512",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/SingleAnchorMacroModule.java",
+      "sourceSha256": "a6427294bc862465e32ac138f20c380ae9e25bb61f6a765062ffdf750865d77d",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/SpearLungeModule.java",
+      "sourceSha256": "f3e6ea053c873f5997584fccde0d5a4cc0e4a48f2c65962f40ce9efea134890d",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors",
+        "staged equip and action-key repair"
+      ]
+    },
+    {
+      "class": "module/impl/combat/TriggerbotModule.java",
+      "sourceSha256": "c2430a312eb391ef634a1a394521944a6d1aa0542b1ce9cba179545a546d2aae",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/WTapRecodeModule.java",
+      "sourceSha256": "8cc8a7e6511231bfa8dd59f470ed5808218000c86dbfcf0e931cb03640d4aea9",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/bot/CrystalBotModule.java",
+      "sourceSha256": "98593d93b23f1bfcb01b84ff89a724f72f862e64ab6d8206b2ed9f95c8a285e4",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    },
+    {
+      "class": "module/impl/combat/bot/SwordBotModule.java",
+      "sourceSha256": "511ee31b2ec7fb8ff9977e2afaa9ee7e7e3f5c5596329d0e9706e0446993024a",
+      "adaptations": [
+        "Bytephase settings, events, native HUD and mixin accessors"
+      ]
+    }
+  ],
+  "retainedBytephaseCombat": [
+    "AutoArmor",
+    "AutoClicker",
+    "AutoWeapon",
+    "SprintReset",
+    "MarlowOptimizer",
+    "SwordObsidian",
+    "engine combat utilities"
+  ],
+  "added": [
+    "GlowESP"
+  ],
+  "replacedBlockSelection": {
+    "source": "module/impl/render/BlockOverlayModule.java",
+    "sourceSha256": "3a0449eb4ca8712915e9fe6c752135547719fab1997a693373ff37f7c186e0c3",
+    "bytephaseModule": "Highlight"
+  }
+}

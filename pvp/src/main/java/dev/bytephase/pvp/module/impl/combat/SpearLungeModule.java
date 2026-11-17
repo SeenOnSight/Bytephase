@@ -16,6 +16,7 @@ import dev.bytephase.pvp.module.impl.combat.melee.MeleeAttacks;
 import dev.bytephase.pvp.module.impl.combat.melee.SlotReturn;
 import dev.bytephase.pvp.module.setting.BooleanSetting;
 import dev.bytephase.pvp.module.setting.KeySetting;
+import dev.bytephase.pvp.mixin.AccessorElytraFlyMultiPlayerGameMode;
 import dev.bytephase.pvp.util.pvp.Rotation;
 import dev.bytephase.pvp.util.pvp.ServerRotation;
 import net.fabricmc.api.EnvType;
@@ -37,6 +38,7 @@ import net.minecraft.world.phys.Vec3;
 @Environment(EnvType.CLIENT)
 public final class SpearLungeModule extends ClientModule {
     private static final int BUFFER_TICKS = 10;
+    private static final int MAX_WINDUP_TICKS = 200;
     private static final double POKE_RANGE = 4.4;
     private static final double POKE_MARGIN = 0.125;
     private final KeySetting key = this.addSetting("lunge-key", new KeySetting("Lunge Key", -1));
@@ -45,6 +47,10 @@ public final class SpearLungeModule extends ClientModule {
     private final SlotReturn slots = new SlotReturn(this);
     private boolean pending;
     private int pendingTicks;
+    private int preparedSlot = -1;
+    private int preparedTick;
+    private int returnSlot = -1;
+    private boolean preparedLunge;
     private LocalPlayer owner;
 
     public SpearLungeModule() {
@@ -54,6 +60,8 @@ public final class SpearLungeModule extends ClientModule {
     @Override
     protected void onEnable() {
         this.pending = false;
+        this.preparedSlot = -1;
+        this.returnSlot = -1;
         this.owner = Minecraft.getInstance().player;
         this.on(KeyInputEvent.TYPE, Stage.PRE, EventPriority.HIGH, this::onKey);
         this.on(MouseInputEvent.TYPE, Stage.PRE, EventPriority.HIGH, this::onMouse);
@@ -63,30 +71,47 @@ public final class SpearLungeModule extends ClientModule {
     @Override
     protected void onDisable() {
         this.pending = false;
+        this.preparedSlot = -1;
+        this.returnSlot = -1;
         this.owner = null;
         this.slots.drop(Minecraft.getInstance(), this.switchBack.get());
     }
 
     private void onKey(KeyInputEvent event) {
-        if (event.action == 1) {
+        if (event.action != 0 && this.ownsActionKey(event.key)) {
+            // A number-key action must not also queue vanilla's hotbar selection.
+            event.setCancelled(true);
+        }
+        if (event.action == 1 && this.ownsActionKey(event.key)) {
             this.onPress(event.key);
         }
     }
 
     private void onMouse(MouseInputEvent event) {
-        if (event.action == 1) {
+        if (event.action != 0 && this.ownsActionKey(1000 + event.button)) {
+            event.setCancelled(true);
+        }
+        if (event.action == 1 && this.ownsActionKey(1000 + event.button)) {
             this.onPress(1000 + event.button);
         }
+    }
+
+    private boolean ownsActionKey(int pressed) {
+        Minecraft mc = Minecraft.getInstance();
+        return ModuleKeybinds.isBindable(this.key.value()) && pressed == this.key.value()
+            && mc.screen == null && mc.player != null && mc.level != null;
     }
 
     private void onPress(int pressed) {
         int bound = this.key.value();
         if (ModuleKeybinds.isBindable(bound) && pressed == bound) {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.screen == null && mc.player != null && mc.level != null) {
+            if (mc.screen == null && mc.player != null && mc.level != null
+                    && !this.pending && this.preparedSlot < 0 && !this.slots.holding()) {
                 if (bestSpear(mc.player.getInventory(), true) < 0) {
                     ModuleChat.actionBar(this, ModuleChat.body().warn("No Lunge spear").text(" in your hotbar"));
                 } else {
+                    this.returnSlot = mc.player.getInventory().getSelectedSlot();
                     this.pending = true;
                     this.pendingTicks = 0;
                 }
@@ -96,14 +121,21 @@ public final class SpearLungeModule extends ClientModule {
 
     private void onTick(TickEvent event) {
         Minecraft mc = Minecraft.getInstance();
-        this.slots.tick(mc, this.switchBack.get());
         LocalPlayer player = mc.player;
         if (player != this.owner) {
+            this.slots.drop(mc, false);
             this.owner = player;
             this.pending = false;
+            this.preparedSlot = -1;
+            this.returnSlot = -1;
         }
 
+        if (this.preparedSlot < 0) this.slots.tick(mc, this.switchBack.get());
         if (player != null && mc.level != null && mc.gameMode != null) {
+            if (this.preparedSlot >= 0) {
+                this.finishPreparedStab(mc, player);
+                return;
+            }
             if (this.pending) {
                 this.tryLunge(mc, player);
             }
@@ -115,7 +147,7 @@ public final class SpearLungeModule extends ClientModule {
     }
 
     private void tryLunge(Minecraft mc, LocalPlayer player) {
-        if (++this.pendingTicks > 10) {
+        if (++this.pendingTicks > BUFFER_TICKS) {
             this.pending = false;
         } else if (this.canStab(mc, player) && !player.isInWater() && !player.isFallFlying() && !player.isPassenger()) {
             if (player.getFoodData().hasEnoughFood() || player.getAbilities().mayfly) {
@@ -124,10 +156,11 @@ public final class SpearLungeModule extends ClientModule {
                 if (slot < 0) {
                     this.pending = false;
                 } else {
-                    ItemStack spear = inventory.getItem(slot);
-                    if (canJab(mc, player, spear) && this.slots.take(player, slot)) {
+                    // Selecting the spear restarts its own attack charge. The
+                    // pre-swap hand's cooldown cannot determine when it can jab.
+                    if (this.slots.take(player, slot, this.returnSlot)) {
                         this.pending = false;
-                        stab(mc, player, spear.get(DataComponents.PIERCING_WEAPON));
+                        this.prepareStab(player, slot, true);
                     }
                 }
             }
@@ -140,21 +173,80 @@ public final class SpearLungeModule extends ClientModule {
                 Inventory inventory = player.getInventory();
                 int slot = bestSpear(inventory, false);
                 if (slot >= 0) {
-                    ItemStack spear = inventory.getItem(slot);
-                    if (canJab(mc, player, spear) && enemyPastReach(player) && this.slots.take(player, slot)) {
-                        stab(mc, player, spear.get(DataComponents.PIERCING_WEAPON));
+                    if (enemyPastReach(player) && this.slots.take(player, slot)) {
+                        this.prepareStab(player, slot, false);
                     }
                 }
             }
         }
     }
 
-    private static void stab(Minecraft mc, LocalPlayer player, PiercingWeapon weapon) {
+    private void prepareStab(LocalPlayer player, int slot, boolean lunge) {
+        this.preparedSlot = slot;
+        this.preparedTick = player.tickCount;
+        this.preparedLunge = lunge;
+        Minecraft mc = Minecraft.getInstance();
+        ((AccessorElytraFlyMultiPlayerGameMode)mc.gameMode).pvp$elytraFlySyncSelected();
+    }
+
+    private void finishPreparedStab(Minecraft mc, LocalPlayer player) {
+        if (mc.screen != null || player.getInventory().getSelectedSlot() != this.preparedSlot) {
+            this.cancelPreparedStab(mc);
+            return;
+        }
+        // Let vanilla tick the newly equipped spear before applying its attack
+        // attributes and Lunge enchantment. Never stab with the pre-swap hand.
+        if (player.tickCount <= this.preparedTick) return;
+        ItemStack spear = player.getMainHandItem();
+        PiercingWeapon weapon = spear.get(DataComponents.PIERCING_WEAPON);
+        if (weapon == null || spear.isEmpty() || spear.nextDamageWillBreak()
+                || this.preparedLunge && lungeLevel(spear) <= 0) {
+            this.cancelPreparedStab(mc);
+            return;
+        }
+        float delay = player.getCurrentItemAttackStrengthDelay();
+        float minimumCharge = spear.getOrDefault(DataComponents.MINIMUM_ATTACK_CHARGE, 0.0F);
+        int windupLimit = Float.isFinite(delay) && Float.isFinite(minimumCharge)
+            ? (int)Math.min(MAX_WINDUP_TICKS,
+                Math.max(BUFFER_TICKS, Math.ceil(delay * Math.max(0.0F, minimumCharge)) + BUFFER_TICKS))
+            : MAX_WINDUP_TICKS;
+        if (player.tickCount - this.preparedTick > windupLimit) {
+            this.cancelPreparedStab(mc);
+            return;
+        }
+        if (!this.canStab(mc, player) || !canJab(mc, player, spear)) return;
+        if (this.preparedLunge && (player.isInWater() || player.isFallFlying() || player.isPassenger()
+                || !player.getFoodData().hasEnoughFood() && !player.getAbilities().mayfly)) {
+            this.cancelPreparedStab(mc);
+            return;
+        }
+        if (!this.preparedLunge && !enemyPastReach(player)) {
+            this.cancelPreparedStab(mc);
+            return;
+        }
+        if (stab(mc, player, weapon)) {
+            this.preparedSlot = -1;
+            this.returnSlot = -1;
+        } else {
+            this.cancelPreparedStab(mc);
+        }
+    }
+
+    private void cancelPreparedStab(Minecraft mc) {
+        this.preparedSlot = -1;
+        this.returnSlot = -1;
+        this.slots.drop(mc, this.switchBack.get());
+    }
+
+    private static boolean stab(Minecraft mc, LocalPlayer player, PiercingWeapon weapon) {
+        MeleeAttacks.syncSprint(player);
         mc.gameMode.piercingAttack(weapon);
         if (MeleeAttacks.actedThisTick(player)) {
             player.swing(InteractionHand.MAIN_HAND);
             MeleeAttacks.claimTick(mc);
+            return true;
         }
+        return false;
     }
 
     private boolean canStab(Minecraft mc, LocalPlayer player) {
@@ -173,13 +265,13 @@ public final class SpearLungeModule extends ClientModule {
         Rotation sent = ServerRotation.sent();
         Vec3 look = sent != null ? Vec3.directionFromRotation(sent.pitch(), sent.yaw()) : player.getViewVector(1.0F);
         Vec3 eye = player.getEyePosition();
-        Vec3 end = eye.add(look.scale(4.4));
+        Vec3 end = eye.add(look.scale(POKE_RANGE));
         double reach = player.entityInteractionRange();
-        AABB area = player.getBoundingBox().expandTowards(look.scale(4.4)).inflate(1.0);
+        AABB area = player.getBoundingBox().expandTowards(look.scale(POKE_RANGE)).inflate(1.0);
 
         for (Entity entity : player.level().getEntities(player, area)) {
             if (MeleeAttacks.isEnemy(player, entity)) {
-                Optional<Vec3> at = entity.getBoundingBox().inflate(0.125).clip(eye, end);
+                Optional<Vec3> at = entity.getBoundingBox().inflate(POKE_MARGIN).clip(eye, end);
                 if (at.isPresent() && eye.distanceTo(at.get()) > reach && MeleeAttacks.lineIsClear(player, eye, at.get())) {
                     return true;
                 }

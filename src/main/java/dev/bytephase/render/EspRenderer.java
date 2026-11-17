@@ -1,6 +1,6 @@
 package dev.bytephase.render;
 
-import dev.bytephase.render.esp.ClarityEspRenderer;
+import dev.bytephase.render.esp.BytephaseEspRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.player.PlayerEntity;
@@ -15,7 +15,7 @@ import java.util.List;
  * <p>Every entity ESP uses the same target mode strings and the same colour
  * handling. The plain styles use the existing batched {@link RenderBox}
  * primitives. The {@code Shader*} styles queue the same boxes for the
- * supplied Clarity post-processing shaders, which are flushed once per frame
+ * supplied Bytephase post-processing shaders, which are flushed once per frame
  * after the box batches have been submitted.</p>
  */
 public final class EspRenderer {
@@ -32,11 +32,11 @@ public final class EspRenderer {
 
     /** Whether this frame queued any box for the shader renderer. */
     public static boolean hasQueuedShader() {
-        return ClarityEspRenderer.hasQueued();
+        return BytephaseEspRenderer.hasQueued();
     }
 
     public static void clearQueuedShader() {
-        ClarityEspRenderer.clearQueued();
+        BytephaseEspRenderer.clearQueued();
     }
 
     public static boolean isPlayer(Entity entity) {
@@ -113,7 +113,7 @@ public final class EspRenderer {
             default -> {
                 // Shader styles use the same batched world-space boxes as
                 // their mask input, then composite once at the end of the frame.
-                ClarityEspRenderer.queue(VISIBLE_BOXES, argb, selected, throughWalls);
+                BytephaseEspRenderer.queue(VISIBLE_BOXES, argb, selected, throughWalls);
             }
         }
     }

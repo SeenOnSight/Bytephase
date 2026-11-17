@@ -3,6 +3,7 @@ package dev.bytephase.render.capture;
 import com.sun.jna.Function;
 import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
+import dev.bytephase.render.shader.GlPixelUnpack;
 import dev.bytephase.render.shader.GlTextures;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWNativeCocoa;
@@ -149,7 +150,7 @@ final class PrivateOverlayWindow implements AutoCloseable {
         if (image == 0) image = GL11.glGenTextures();
         if (imageWidth != width || imageHeight != height) {
             int previous = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-            try {
+            try (GlPixelUnpack ignored = GlPixelUnpack.tightlyPacked()) {
                 GL11.glBindTexture(GL11.GL_TEXTURE_2D, image);
                 GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
                 GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);

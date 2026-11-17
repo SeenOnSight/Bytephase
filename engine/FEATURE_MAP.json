@@ -1,0 +1,1162 @@
+[
+  {
+    "class": "dev.bytephase.engine.categories.bots.AnchorHunter",
+    "name": "Anchor Hunter",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "AnchorHunter",
+    "source_sha256": "69620504d7f4a5fd6ee583ab1cd0028c474c9a128bd2800aa98028b148bc9e1e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.AutoAreaMiner",
+    "name": "Auto Area Miner",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "AutoAreaMiner",
+    "source_sha256": "6abf6806d53df80e68cb317164430e3dae40172d9001919794b4f05e7f8d5595"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.AutoAuctionFlipper",
+    "name": "AutoAuctionFlipper",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "AutoAuctionFlipper",
+    "source_sha256": "100224b3cb5254fe74915128bdcbc3dc722349352290622575a78f7d907285c3"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.AutoBuilder",
+    "name": "Auto Builder",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "AutoBuilder",
+    "source_sha256": "b3f4350eaba4bdccdcbdfb15c0eeebcfd830c7d1eb2e9a0909e60316edad0948"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.AutoElytraFinder",
+    "name": "Auto Elytra Finder",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "AutoElytraFinder",
+    "source_sha256": "10a3e8a027c8907d010e4ae2b0af9ba9732c0d93006433023e89602b8c268846"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.AutoElytraPilot",
+    "name": "Auto Elytra Pilot",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "AutoElytraPilot",
+    "source_sha256": "9f010b31f5a998c7bd5229c6967fe96c9c87ca7dfa3edaa1bb1daa16ffd6d796"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.AutoTpaHere",
+    "name": "Auto TPA Here",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "AutoTpaHere",
+    "source_sha256": "923fc2afe1a07f3db8a30e9c20d549815acad7aaa77b76831c38424442eb189e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.CrystalPvpBot",
+    "name": "Crystal PvP Bot",
+    "category": "bots",
+    "status": "existing",
+    "bytephase": "CrystalPvPBot",
+    "source_sha256": "6fcc82a8ffb303cf8c5feaf8afe87301f4f90cac5f803587962d7fe683fb4ccf"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.RtpBaseAlert",
+    "name": "RTP Base Alert",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "RtpBaseAlert",
+    "source_sha256": "92938dc66a9375d79bdb4bd4a86507ab7538892b1cfec36b051e21189843b95e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.SpawnerProtect",
+    "name": "SpawnerProtect",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "SpawnerProtect",
+    "source_sha256": "e9adca426bee02763351b607e680a58891b60b2584048babd4e3df0d3ffd4a3e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.SwordPvpBot",
+    "name": "Sword PvP Bot",
+    "category": "bots",
+    "status": "existing",
+    "bytephase": "SwordPvPBot",
+    "source_sha256": "14c10be8bcab44bb0e580bfa9d3045aef8c941e601f8fa550cee0b9f13cc3f11"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.bots.VillagerTradeBot",
+    "name": "Auto Villager Trade",
+    "category": "bots",
+    "status": "added",
+    "bytephase": "VillagerTradeBot",
+    "source_sha256": "d85126a5599fe9a6498024779774c4f0e00c4137086ec26519e94d919913a3ad"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AimAssist",
+    "name": "Aim Assist",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "AimAssist",
+    "source_sha256": "fed12c02aa1bc462ffa4c1c19c441efde07dccd93d74b7f451cb201d1b0a202c"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AnchorMacro",
+    "name": "Anchor Macro",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "AnchorMacro",
+    "source_sha256": "b96fa7c7b8e0e7181485fe9ff69d61147e84c3807715fb1a8c9ff72836e9af42"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoAggroPearl",
+    "name": "Auto Aggro Pearl",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "AutoAggroPearl",
+    "source_sha256": "b55fe1ca3ebc15bceac815b3238e54be65b5d9c5e53c4bbf6af9ea86aae92373"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoCart",
+    "name": "AutoCart",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "AutoCart",
+    "source_sha256": "e86128328792acfe6d0840c180a54e7f8af5bdfb1b50570d14e8c3c9a9d8957e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoClicker",
+    "name": "AutoClicker",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "AutoClicker",
+    "source_sha256": "8e9c627c9e4ef33a1a88abcab5daaeb7e50bc6a00b67cc5ae06f4939421e3f02"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoHitCrystal",
+    "name": "Auto Hit Crystal",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "CrystalMacro",
+    "source_sha256": "30ba0a85b0748c0725b1e38092f515ecdb3cc919a277a4969de376c2bf33fe02"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoHotbar",
+    "name": "Auto Hotbar",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "HotbarArrange",
+    "source_sha256": "9571b8e88e60caf2becb59482740db94a35756b6c8543dd0da6efc163c8af57f"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoInventoryTotem",
+    "name": "Auto Inventory Totem",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "AutoInventoryTotem",
+    "source_sha256": "191a3253148802ec7cf958cf283f597fcec970a780184c0f6c0479d8c587ffde"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoJumpReset",
+    "name": "Auto Jump Reset",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "JumpReset",
+    "source_sha256": "fd824533d9bcda8eddb30235eba179b6fea8e52a3ded73d0f85ff1bcad7ffb15"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoShieldBreaker",
+    "name": "Auto Shield Disabler",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "ShieldBreaker",
+    "source_sha256": "c449803dc981f8d2b084cc60a2ac75056ce269ca17e5cd85d2bb999bcadc6239"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoTotem",
+    "name": "Auto Totem",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "AutoTotem",
+    "source_sha256": "a4fa514dcd3831c44c58a97604aac6cc46441b6facf7c3c5b7094810d1cd81de"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoTrap",
+    "name": "AutoTrap",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "AutoTrap",
+    "source_sha256": "cde504361d90cf7bfd138ba868b4d4ca851cae2acce397558f8a5f07098ef4a1"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.AutoXP",
+    "name": "Auto XP",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "FastXP",
+    "source_sha256": "c9559f92c968dadd8dd5eeda9c4e1d395d338e1c112362092c72343df0a22bbc"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.Criticals",
+    "name": "Criticals",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "Criticals",
+    "source_sha256": "be10c1a2e21a99aebc7dee8e08ea878e36eb870fc53458c78c8a363974ff677e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.CrystalAura",
+    "name": "Auto Crystal",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "CrystalAura",
+    "source_sha256": "835635f53e5cd3fdeec0eb6273d1e59c7719a8a0170fd6d875c7b2c591786381"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.CrystalOptimizer",
+    "name": "Crystal Optimizer",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "CrystalOptimizer",
+    "source_sha256": "427a88a43aac951110116441ca8221e43d748e225d18eba1e3115c3a07a3f79f"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.HitBoxes",
+    "name": "Hit Boxes",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "HitBoxes",
+    "source_sha256": "900a495b56246923570a39dd5ecdb82e5b2fbce28eb4e243b36aeb9ac717e725"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.HitSelect",
+    "name": "Hit Select",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "HitSelect",
+    "source_sha256": "ac58a5cc3e1c7d1ade346ef218ab2dfe37104be01f07f378bfc220485c7ab890"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.HitSwap",
+    "name": "Hit Swap",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "Mace / ShieldBreaker / AutoWeapon",
+    "source_sha256": "f0f3075d306bf3c7a0d5d93ff0980a84d1e9b2a37926c0e3a8f6eeef33561e52"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.KeyPearl",
+    "name": "Key Pearl",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "KeyThrow",
+    "source_sha256": "538272da3c7efb7c998f6bf5b731305e6d4ac21bf3119763c32a969c6f4a8635"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.MaceBomber",
+    "name": "Auto Mace",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "Mace",
+    "source_sha256": "2b3f1822a80984385b4e5da22405b9a22a568f1a6101812a624737de3e6ef931"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.ObsidianOptimizer",
+    "name": "Obsidian Optimizer",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "ObsidianOptimizer",
+    "source_sha256": "af6789925ea28a9f19faad142335e68ed71aa9fbb56d3d79296055248c4f0b4a"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.PerfectWindCharge",
+    "name": "Perfect Wind Charge",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "PerfectWindCharge",
+    "source_sha256": "cab6574fa20ba1a52895da01aa02aab4f829c4d6802ff33273e1965cf826347a"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.Reach",
+    "name": "Reach",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "Reach",
+    "source_sha256": "2d012b0f80a93b2a4103bf96682a33145cb8b3e11c6374590c700bfa926880b3"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.SafeAnchor",
+    "name": "Safe Anchor",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "AnchorMacro: Safe Anchor",
+    "source_sha256": "5d45c52e480a92c0a43faeaf4baba055b27076190ad55fd73c0657af6588007c"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.SilentAim",
+    "name": "Silent Aim",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "SilentAim",
+    "source_sha256": "84983a37adb04d8a0080a788a8fc13c22a1938b36db5755bb9cc815894ea7e85"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.TridentAssist",
+    "name": "Trident Assist",
+    "category": "combat",
+    "status": "added",
+    "bytephase": "TridentAssist",
+    "source_sha256": "c79d06b0cdcb203af0646454426b316239c8c6ce0b840d16c37733677f479ca9"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.TriggerBot",
+    "name": "Trigger Bot",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "Triggerbot",
+    "source_sha256": "711211e63bd0d971a62cef83e42751b6db0180b4eda4867342127921a82a1e5f"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.combat.WTap",
+    "name": "W Tap",
+    "category": "combat",
+    "status": "existing",
+    "bytephase": "WTap",
+    "source_sha256": "780fe71970995cffdfac378b9ba810b5b0cd6d1d2d3a051158cac4324fbb798e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.configs.Configs",
+    "name": "Configs",
+    "category": "configs",
+    "status": "existing",
+    "bytephase": "Configs",
+    "source_sha256": "3c1ed34992402c229aadc09ad97a7c905942d00b2367eba74d30f5889b6a1c72"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.AntiVanish",
+    "name": "AntiVanish",
+    "category": "donutsmp",
+    "status": "existing",
+    "bytephase": "AntiVanish",
+    "source_sha256": "f324fb9a02793330a5df1d818c3b29e7b5a60b82d2b258b54ef71bd46e91850b"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.AutoMine",
+    "name": "AutoMine",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "AutoMine",
+    "source_sha256": "6b04660f67742f84db7e968821170f25ffb048d5794f6bf50e427f81ee90dd3a"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.AutoSell",
+    "name": "AutoSell",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "AutoSell",
+    "source_sha256": "5fbf64d0a48610cad16ae5f19e3fd971d4706bfe6c0c15ad05d8a4d9445b4b49"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.AutoSellChest",
+    "name": "Auto Sell Chest",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "AutoSellChest",
+    "source_sha256": "d99e00497ef06d06a1170a314b9b6106e2dd734c18e71b152f440f7ab816c341"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.Bloodhound",
+    "name": "Bloodhound",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "Bloodhound",
+    "source_sha256": "bde6c2427c5f6c2095688b71c9eeabbbddd9b69f37a7f3211f30c8ef498f0c4e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.BoneDropper",
+    "name": "BoneDropper",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "BoneDropper",
+    "source_sha256": "0886d28f22e77eb83bba6d6c9ef5394347f4d1670ba83b256296f1ebce9184e1"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.ChunkFinder",
+    "name": "ChunkFinder",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "ChunkFinder",
+    "source_sha256": "1b8cefc793e8536e5b7679101f23e0afb0fce30b4164392c6a6c423530ef7310"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.ChunkFinderV2",
+    "name": "ChunkFinderV2",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "ChunkFinderV2",
+    "source_sha256": "be7b281bd73ab7ad12f223ea142dd6002c093f462c8deba1efad4e722f37a726"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.DeepPlayerFinder",
+    "name": "Deep Player Finder",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "DeepPlayerFinder",
+    "source_sha256": "237e5335c1d7becfa588ac181940a353da3516b5df72b18bbf982b3fa23cdc51"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.FakePay",
+    "name": "FakePay",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "FakePay",
+    "source_sha256": "230732f0c871e6c3b5d1e7030f6ffb1688a379e6830bcdf68108d5f7a715b008"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.FakeStats",
+    "name": "FakeStats",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "FakeStats",
+    "source_sha256": "063124d44e8d9609f3e361d782f29052fbb3a8b4eb2f14fb52822a742093b35c"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.GamblingRigger",
+    "name": "GamblingRigger",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "GamblingRigger",
+    "source_sha256": "13297354b2a7167ace76d9fc51c2bda2c4ddecad37726b8207aa02abeacf4645"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.NetheriteFinder",
+    "name": "Netherite Finder",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "NetheriteFinder",
+    "source_sha256": "12844edae34291c49b8fdd48e3b37f546e5a6d19d369cb47656675051fe91aa2"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.RegionMap",
+    "name": "RegionMap",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "RegionMap",
+    "source_sha256": "377adfacdd5e58dea591e498a23140235068b3c9c9faf69b08480c485b1751f5"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.Relog",
+    "name": "Relog Method",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "Relog",
+    "source_sha256": "b84671c90f9dad80641cbc535470bc0a5baaa44470ed1145087fef0e7205974a"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.SeedAnalyzer",
+    "name": "SeedAnalyzer",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "SeedAnalyzer",
+    "source_sha256": "d4d6b2b307484780995c33dc417d2ea21e4551f119a9822e1d365fae33415eb4"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.SilentHome",
+    "name": "Silent Home",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "SilentHome",
+    "source_sha256": "5db6496e67ddb3444e091531c48262b623065b9c09832d7c6b53787ea806c850"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.SpecialItemBuyer",
+    "name": "SpecialItemBuyer",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "SpecialItemBuyer",
+    "source_sha256": "e310402c653f5c1e57b018ea2aeb324622d51e911445b7f284457bdef2f26c3d"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.StaffList",
+    "name": "Staff List",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "StaffList",
+    "source_sha256": "3a5ddb2dad5c3c4929f4341705d4f83e4ba11962a84633d51d2300422a1484f8"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.SusChunkFinder",
+    "name": "Sus Chunk Finder",
+    "category": "donutsmp",
+    "status": "existing",
+    "bytephase": "SusChunks",
+    "source_sha256": "be68a16b5e0fd0de8a411664d9a9622ff4beefae3f11d31949f60dcf09eccf09"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.SusChunkFinderV2",
+    "name": "SusChunkFinderV2",
+    "category": "donutsmp",
+    "status": "existing",
+    "bytephase": "SusChunks",
+    "source_sha256": "373c4909487db80a3a46cd647a1eeff641735626b717534054fbe70e1f8d724f"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.donutsmp.WanderingTraderFinder",
+    "name": "TraderFinder",
+    "category": "donutsmp",
+    "status": "added",
+    "bytephase": "WanderingTraderFinder",
+    "source_sha256": "8298c22910c9b83369f27e4b96685102ba67ecc5502d277c4094502182158743"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.ACAlert",
+    "name": "ACAlert",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "ACAlert",
+    "source_sha256": "16aeda0425bfecc71c53fc12e0e0d8092333d4b1aa88413b103e1160680691f7"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.AutoPot",
+    "name": "Auto Pot",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "AutoPot",
+    "source_sha256": "4f5c86171778b7c65614d46ab2a66d8bdab40d0b90048c1269c7ed8e74702351"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.AutoPromo",
+    "name": "Auto Promo",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "AutoPromo",
+    "source_sha256": "328367335a3d44fabf8645294c33fe46f6e634a142ac1cabfa35b66836153185"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.AutoTool",
+    "name": "AutoTool",
+    "category": "misc",
+    "status": "existing",
+    "bytephase": "AutoTool",
+    "source_sha256": "3e6136ed22e15ae68f0a84e7f1386bbe4b1e02136bb12a319851ab18e0a0a4d9"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.BoatFly",
+    "name": "Boatfly",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "BoatFly",
+    "source_sha256": "82d8e3ac62a35b2849538c24d6fcbaa4ac01eedef567f2d17dd951539b039a5b"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.Capes",
+    "name": "Capes Library",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "Capes",
+    "source_sha256": "474bc8b7d597f4da3c95a793943833e28bb3976ad1c00b7f2e216e03ea2a7f41"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.BytephaseRadio",
+    "name": "Bytephase Radio",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "BytephaseRadio",
+    "source_sha256": "2b98c01f9cd6bf7b83fe6ab6a083a923d50b164ddb01c495796be547be37301f"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.CreamyKeys",
+    "name": "Creamy Keys",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "CreamyKeys",
+    "source_sha256": "2eddff8fb9fcdc61f15b6fee9e7c90dcccb964e43f6c18b7ab5e8774255e01cc"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.CustomCrosshair",
+    "name": "Custom Crosshair",
+    "category": "misc",
+    "status": "existing",
+    "bytephase": "Crosshair",
+    "source_sha256": "5618af9daba657ae4561bdb5e082346c880fd8018d6f1a9f9453abd5c23e5ad7"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.CustomSkin",
+    "name": "CustomSkin",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "CustomSkin",
+    "source_sha256": "6968eda84469e6126db15da57163bee8d38b399777412a488cd7cc67c2bcd5af"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.FOVSlider",
+    "name": "FOVSlider",
+    "category": "misc",
+    "status": "existing",
+    "bytephase": "CustomFov",
+    "source_sha256": "e12d7fc717ee4ad6c7605fb132025fb06b8def126b0083ea530c767d6a3bc4c3"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.FakeCoordinates",
+    "name": "Fake Coordinates",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "FakeCoordinates",
+    "source_sha256": "1ba9b498a3e9d37c215e51d01c929d039e4ea41e0dc642d65b04e399989e116c"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.FakePlayer",
+    "name": "Fake Player",
+    "category": "misc",
+    "status": "existing",
+    "bytephase": "/fakeplayer command",
+    "source_sha256": "d890d83a545cbef26f2b4ea8b26ef383a4632617c05e4ef7aff54fde29a32512"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.FastPlace",
+    "name": "Fast Place",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "FastPlace",
+    "source_sha256": "3736dda217ff605df7b5af8ddf095785681bfb36e34eddf94f560d62d6d847d0"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.Fastbreak",
+    "name": "Fastbreak",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "Fastbreak",
+    "source_sha256": "d563123cf4974b3ec7991847b40022eef4c92f3b5d6dce8f2ee937977b3ac460"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.InventoryCleaner",
+    "name": "Inventory Cleaner",
+    "category": "misc",
+    "status": "existing",
+    "bytephase": "InventoryCleaner",
+    "source_sha256": "78230924a82ed8ce557011f1230575b67ea909d2f685dab73e0efa7e2cd886e5"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.NameProtect",
+    "name": "Name Protect",
+    "category": "misc",
+    "status": "existing",
+    "bytephase": "NameProtect",
+    "source_sha256": "b426201fce0d6a0ee727adbb3c5bad7705dfdeeaf3f0c61fef0edae73045b305"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.PotionRefill",
+    "name": "Potion Refill",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "PotionRefill",
+    "source_sha256": "507bcb58e9cf0c90b31292d4631483309f0bd1c3b41be1b8714b352ece50ce35"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.SkinProtect",
+    "name": "SkinProtect",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "SkinProtect",
+    "source_sha256": "c962b0e718b90dc6e018631edb7c89b5d8c0384a52e07fb7b3e939885a3cb1ac"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.TimeChanger",
+    "name": "Time Changer",
+    "category": "misc",
+    "status": "existing",
+    "bytephase": "TimeChanger",
+    "source_sha256": "4b285bd2ea3d82ac2c9ffa1a7a89272e446d033b6e0f1a69bbad5ab4069d7a92"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.WeatherChanger",
+    "name": "WeatherChanger",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "WeatherChanger",
+    "source_sha256": "4f7fd624eb6a38acd8a800ffceb1bd8da905722f4c905a2ff7ed4eaee655671f"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.WeatherNotifier",
+    "name": "WeatherNotifier",
+    "category": "misc",
+    "status": "added",
+    "bytephase": "WeatherNotifier",
+    "source_sha256": "5f5dab403d926345d4cd1fa3f9b891ccf2cce8940c033fd49494389d4801f36a"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.misc.Zoom",
+    "name": "Zoom",
+    "category": "misc",
+    "status": "existing",
+    "bytephase": "Zoom",
+    "source_sha256": "00c4caff7bea9d0bfe057e233f70e71bea6e6f205467d862d99c259af03f98e3"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.AutoSpear",
+    "name": "Auto Spear",
+    "category": "movement",
+    "status": "added",
+    "bytephase": "AutoSpear",
+    "source_sha256": "3ec40e5c5f7da7ad3db7a3ace755b7e2dc72243ca50b70c90770072703442a60"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.AutoWalk",
+    "name": "Auto Walk",
+    "category": "movement",
+    "status": "existing",
+    "bytephase": "AutoWalk",
+    "source_sha256": "7364fb5f1b53b06360dba402484e56fe75826a06a05e4eee225b1c839f5fbb29"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.Flight",
+    "name": "Flight",
+    "category": "movement",
+    "status": "added",
+    "bytephase": "Flight",
+    "source_sha256": "6b261ebaf3337bd98a107ce165cb619948d5f0633fcc5baf9aec261c876c4d36"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.Freecam",
+    "name": "Freecam",
+    "category": "movement",
+    "status": "added",
+    "bytephase": "Freecam",
+    "source_sha256": "2c58fd108d4cc952452334d12aa9fe9758402e19f0bf448556c536d7c5bd60b1"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.KeepSprint",
+    "name": "KeepSprint",
+    "category": "movement",
+    "status": "added",
+    "bytephase": "KeepSprint",
+    "source_sha256": "8b085c5ed9d5d435aa579cbd95752d99584aa121ea4620040b7b2146542c4e4c"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.PearlCatchAssist",
+    "name": "Pearl Catch Assist",
+    "category": "movement",
+    "status": "added",
+    "bytephase": "PearlCatchAssist",
+    "source_sha256": "58c10eb192b969ebaf991bd04169d89da53324d7f58a4c3c0e0d1aa2f1250a78"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.Scaffold",
+    "name": "Scaffold",
+    "category": "movement",
+    "status": "added",
+    "bytephase": "Scaffold",
+    "source_sha256": "3f57d8b864d6078fc4ccc0442101d1b3a78216db6a50ac40b876820baf16a509"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.SpeedHack",
+    "name": "SpeedHack",
+    "category": "movement",
+    "status": "added",
+    "bytephase": "SpeedHack",
+    "source_sha256": "c2e7e826b464e619d896788cca960169b2ce51c307541867f6797ad34e83a07e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.movement.Sprint",
+    "name": "Sprint",
+    "category": "movement",
+    "status": "existing",
+    "bytephase": "Sprint",
+    "source_sha256": "6f09eb12c3b464cdbe7b3ea5aa0cfbd8af0daf8c93582963e4ffb280dcb0b0ac"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.network.BackTrack",
+    "name": "Back Track",
+    "category": "network",
+    "status": "added",
+    "bytephase": "BackTrack",
+    "source_sha256": "422b9210686e772956e5146d12ecebe907ac442bfe7577105646deffab5ffb29"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.network.Blink",
+    "name": "Blink",
+    "category": "network",
+    "status": "added",
+    "bytephase": "Blink",
+    "source_sha256": "6dd7ce33b9ba62fcd5367147171776582bef786f976addbfae1790ed4b6a61ac"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.network.FakeLag",
+    "name": "Fake Lag",
+    "category": "network",
+    "status": "existing",
+    "bytephase": "FakeLag",
+    "source_sha256": "0f02a40dda6f469abbe88b8bc2620bc1c60b28ce03c9e98f0c7b0d5c3e31633a"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.network.KnockbackDelay",
+    "name": "Knockback Delay",
+    "category": "network",
+    "status": "existing",
+    "bytephase": "KnockbackDelay",
+    "source_sha256": "3fdeec5cca7f6e54754ce490af0a54d020d9fcef5edcce156375688727b88e97"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.settings.ClientSounds",
+    "name": "Client Sounds",
+    "category": "settings",
+    "status": "added",
+    "bytephase": "ClientSounds",
+    "source_sha256": "b026d1b1317dfcf132b1e086a7d83d3a2307317652696a0f27d26c714e6965f6"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.settings.GUISettings",
+    "name": "GUI Settings",
+    "category": "settings",
+    "status": "existing",
+    "bytephase": "Appearance / ClickGUI",
+    "source_sha256": "fea0382a3c6a2f0933d97e25fabdfa049ee0642ed1d594b442efdae39a8abd9e"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.settings.License",
+    "name": "Client Info",
+    "category": "settings",
+    "status": "added",
+    "bytephase": "ClientInfo",
+    "source_sha256": "43412f631eadfec860f527ecc4edcb1a26b4ec4127aab779f421d1c4f5ac2eed"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.settings.MiddleClickFriend",
+    "name": "Quick Friend",
+    "category": "settings",
+    "status": "added",
+    "bytephase": "MiddleClickFriend",
+    "source_sha256": "bab34a603cc584f88d4efbfcf60b58610d017618b94225bd9e84d95f768fc03d"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.settings.Notifications",
+    "name": "Notifications",
+    "category": "settings",
+    "status": "existing",
+    "bytephase": "Notifications",
+    "source_sha256": "292a3ac2516a5dd63da5031e25b71af92a062971e6a25513472da940c70f4a08"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.settings.Panic",
+    "name": "Panic",
+    "category": "settings",
+    "status": "added",
+    "bytephase": "Panic",
+    "source_sha256": "be95bf6b508aca80269046458fae77fa6dc74b1a7f71ae81722bcc78f897239d"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.settings.SelfDestruct",
+    "name": "Self Destruct",
+    "category": "settings",
+    "status": "added",
+    "bytephase": "SelfDestruct",
+    "source_sha256": "819119ba9e31ebe60ea4d6b61d0d79d084114ec697444acff6adbb5ae32062d3"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.socials.Friends",
+    "name": "Friends",
+    "category": "socials",
+    "status": "existing",
+    "bytephase": "Friends",
+    "source_sha256": "953df38dfb28d3d62d96fdf685fc9b69068673e1e26d06d97f7a5dfb2608fd7b"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.theme.ThemeCustomizer",
+    "name": "Theme Customizer",
+    "category": "theme",
+    "status": "existing",
+    "bytephase": "Themes",
+    "source_sha256": "208dc38019b2b22cb759ce7ecbf671933d41e52608f01d17af8e5ae07aea2457"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.AtmosphericParticles",
+    "name": "Atmospheric Particles",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "AtmosphericParticles",
+    "source_sha256": "340c2ac28cdc133ae606fd2bdf7529ddff5a3498d0c89138d65e8101fefe313b"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.BlockESP",
+    "name": "BlockESP",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "BlockESP",
+    "source_sha256": "aacb3f43a948679e586c8a9af935a6794432e1b5378479c63ce53d1fefbaaf2c"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.BlockHighlight",
+    "name": "BlockHighlight",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "Highlight",
+    "source_sha256": "6f6ea26e590f01627810a99a8299c08585cc7a8caffd003e0a0607b8bc042ca1"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.BlockOverlay",
+    "name": "Block Overlay",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "Highlight",
+    "source_sha256": "40964cff89467702708e44db7b91aff98e21ea06cf3efba233bbe331305018b7"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.CustomFlame",
+    "name": "Custom Flame",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "CustomFlame",
+    "source_sha256": "a3099a4446d91a7c466c3933845bab0d2a837451bdcc8867c0e4fd3bebd0b00a"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.CustomSky",
+    "name": "Custom Sky",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "SkyShaders",
+    "source_sha256": "acc2bf2500d678208c798294c2648d69651d8140bd616dda863824da4d6d0912"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.CustomWorld",
+    "name": "CustomWorld",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "CustomWorld",
+    "source_sha256": "1417e92338cb056951456256e1ea174a42cb6ffed3942a750a64dc907ba92914"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.FireFly",
+    "name": "FireFly",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "FireFly",
+    "source_sha256": "7808e282a91a948859d942181cac647cf190bdd2aa31fc1330c21b4b67419c49"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.Freelook",
+    "name": "Freelook",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "Freelook",
+    "source_sha256": "d1b15514ec29d46419e5d5b4e0e0655645fe6bcfa82126c2e7f74a6a6f6ceeea"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.Fullbright",
+    "name": "Fullbright",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "Fullbright",
+    "source_sha256": "aaadf17e5c622b3bbbeb3bbfd6ba152ee10e7ff53c2f5ec61c151621507978fc"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.HandCustomer",
+    "name": "Swing Animation",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "ViewModel / SlowSwing",
+    "source_sha256": "a826ab2492bf5c25e568925543c78598ec273e5de50de66820fd3b23bc92fb3b"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.HandShader",
+    "name": "HandShader",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "HandShader",
+    "source_sha256": "b7b0cf96e99e8f4853cd14140cb3b1e767fec1ef996bd9ff1fbfc838c45e6eb4"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.HeatColor",
+    "name": "Heat Color",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "HeatColor",
+    "source_sha256": "db52a32365c0ab489e45595dc962ea6d53397ca627640967ee6e3bb2e728aefb"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.HoleESP",
+    "name": "Hole ESP",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "HoleESP",
+    "source_sha256": "8d5b163e94d125e4635e3eee33a40e75bc57635f70bc9b3d840d358e840290dc"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.JumpCircles",
+    "name": "Jump Circles",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "JumpCircles",
+    "source_sha256": "3bef02762f3a5dac60601ff9cd08901a12a8792d87552744d2fce4d0f9f914df"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.LootESP",
+    "name": "LootESP",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "ItemESP",
+    "source_sha256": "ab9f5ba5ab493e25f427e26e9fb31be08f52b80f3475d17dcbcaf85c20012d3c"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.MobESP",
+    "name": "Mob ESP",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "ESP: Mobs",
+    "source_sha256": "64b2abfae5ad2c6d94f4fbbe1ec007149f9f2229af743fb670b7915f54caecf8"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.MotionBlur",
+    "name": "Motion Blur",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "MotionBlur",
+    "source_sha256": "0a32362049b673523d53e4f4a24d9a64e14684caeefd1a50a71e5a971cfb2c57"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.NameTags",
+    "name": "Name Tags",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "Nametags",
+    "source_sha256": "dba2528fdddd250375569fbc641c4b4d8190609cd3b384e9a9ea5412f8d730a3"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.NoExplosions",
+    "name": "No Explosions",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "NoRender: Explosions",
+    "source_sha256": "d9a4c732b16468f35985185910aa09e55c5beed47ff041b57b0adaff10a32715"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.NoFarmLag",
+    "name": "No Farm Lag",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "Performance",
+    "source_sha256": "377690d868591e912adf8bff0df4a96d1f09a048e1ed4393fbf95d35cfe37ac6"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.NoFlame",
+    "name": "No Flame",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "NoRender: FireOpacity",
+    "source_sha256": "01bfbe85ec96587651c306836104f71586367a31ac37bbd3f7dc3fd9453cab7a"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.Particles",
+    "name": "Particles",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "Particles",
+    "source_sha256": "4ea5f6435affe8eeb26cbd435e8e16b4df73f63bd6fcce55a3c84e44c8bf865b"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.PearlCatch",
+    "name": "Pearl Catch",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "PearlCatch",
+    "source_sha256": "3dae90e032985fa6aa99b311b69473bfa7b99885f13d7f877151508574a1a12b"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.PearlPrediction",
+    "name": "Pearl Prediction",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "Trajectories / ThrowableTrajectory",
+    "source_sha256": "72c90da7c11f45c26ce29e17a7639db2591f335427d1107e6ab25db40bf9425f"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.PlayerESP",
+    "name": "PlayerESP",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "ESP",
+    "source_sha256": "37a929a5536816ee5ce80517ceda2d6fb3bbdee0efd0dd9e6748ea9fe80096ef"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.RealisticWater",
+    "name": "Realistic Water",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "RealisticWater",
+    "source_sha256": "aeb2889c9058ce879c708021066a1540186a58d86abf3ec1b875f6b7c6d89985"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.ShowHUD",
+    "name": "Show HUD",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "ArrayList / Watermark / ArmorHUD / Effects",
+    "source_sha256": "8a6f801d859bf7a1ea4078b7c0b9fdaee64cfa1378cfa90f159ca3ff1043c4f9"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.SpawnerFinder",
+    "name": "Spawner Finder",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "SpawnerFinder",
+    "source_sha256": "af3640119d22a6bc3b513c140698a6d938dda03e9349cb60ad35ee765b891f3b"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.SpotifyHUD",
+    "name": "Spotify HUD",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "SpotifyHUD",
+    "source_sha256": "52347d1ec7a7dc3ef2a37ae877e0e2b85eb032c9065b556f1633c4c46f5fae28"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.StorageESP",
+    "name": "StorageESP",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "StorageESP",
+    "source_sha256": "f34d1b3c46b0f7740e5902f77d027951b01fd525a61f05b3aaf64ec53c0cd54f"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.SwordInspect",
+    "name": "Sword Inspect",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "SwordInspect",
+    "source_sha256": "bbd336cfd0b870ca6f5e5e7fc33bc3164afe717774726432ec7c3b15d00010e5"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.TargetESP",
+    "name": "Target ESP",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "TargetFX",
+    "source_sha256": "a221a9cf42cea3ecb11da02a88f7fdc591626d2cd55187bc0201e0f16d15e2c5"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.TotemCounter",
+    "name": "Totem Counter",
+    "category": "visuals",
+    "status": "added",
+    "bytephase": "TotemCounter",
+    "source_sha256": "3d3408a501da60b8401ccf4e384d663a2ec1e82aebc7777135c8a0952d26e957"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.Trails",
+    "name": "Trails",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "BreadCrumbs",
+    "source_sha256": "9d176177e20497d88eff9f8f06bbbd8e10f2c53216c1960f1853617a2ddd3442"
+  },
+  {
+    "class": "dev.bytephase.engine.categories.visuals.Waypoints",
+    "name": "Waypoints",
+    "category": "visuals",
+    "status": "existing",
+    "bytephase": "Navigator",
+    "source_sha256": "e7adef5455892b79bc7f24161b50400e8233c93a45a0e68019a0ea97a4029416"
+  }
+]

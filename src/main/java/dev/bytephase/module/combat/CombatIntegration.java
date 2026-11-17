@@ -20,6 +20,21 @@ public final class CombatIntegration {
     public static List<ImportedCombat> modules() {
         providers = List.copyOf(FabricLoader.getInstance().getEntrypoints("bytephase:pvp", CombatProvider.class));
         CombatServices services = new CombatServices() {
+            public int accentColor() {
+                var settings = BytePhase.modules.get(dev.bytephase.module.render.UiSettings.class);
+                return settings == null ? 0xFFC0C0C0 : settings.accent();
+            }
+            public void drawHudWidget(String name, Object graphics, Runnable draw) {
+                dev.bytephase.render.HudLayout.draw("module:" + name, (net.minecraft.client.gui.DrawContext)graphics, draw);
+            }
+            public double[] interactionRotation() {
+                var module = ai.auth.ModuleRegistry.getModule(
+                    dev.bytephase.engine.categories.combat.PerfectWindCharge.class);
+                if (module instanceof dev.bytephase.engine.categories.combat.PerfectWindCharge charge
+                        && charge.hasSilentRotation() && BytePhase.mc.player != null)
+                    return new double[]{BytePhase.mc.player.getYaw(), charge.silentPitch()};
+                return null;
+            }
             public boolean isCleanCapture() { return dev.bytephase.render.capture.StreamProof.isCleanFrame(); }
             public boolean isEating() {
                 var player = BytePhase.mc.player;
@@ -27,7 +42,8 @@ public final class CombatIntegration {
                         && player.getActiveItem().get(net.minecraft.component.DataComponentTypes.FOOD) != null;
             }
             public boolean isFreecam() {
-                return BytePhase.mc.player != null && BytePhase.mc.getCameraEntity() != BytePhase.mc.player;
+                return dev.bytephase.engine.categories.movement.Freecam.isBaseInstance()
+                    || BytePhase.mc.player != null && BytePhase.mc.getCameraEntity() != BytePhase.mc.player;
             }
             public boolean sprintHeld() { return BytePhase.mc.options != null && BytePhase.mc.options.sprintKey.isPressed(); }
             public double[] project(double x, double y, double z) { return RenderProjection.project(x, y, z); }

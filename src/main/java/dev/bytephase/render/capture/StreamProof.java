@@ -23,6 +23,8 @@ public final class StreamProof {
 
     private StreamProof() { }
     public static boolean isCleanFrame() { return CLEAN.get(); }
+    /** Hide private menus from drawing without altering Minecraft's screen lifecycle. */
+    public static Screen screenForRender(Screen screen) { return isCleanFrame() ? null : screen; }
     public static String status() { return status; }
 
     public static void emergencyKey(MinecraftClient mc) {
@@ -110,7 +112,6 @@ public final class StreamProof {
     }
 
     private static void renderClean(MinecraftClient mc, Runnable renderGame) {
-        Screen previousScreen = mc.currentScreen;
         var fullbright = BytePhase.modules.get(Fullbright.class);
         var noBob = BytePhase.modules.get(NoBob.class);
         var time = BytePhase.modules.get(TimeChanger.class);
@@ -123,8 +124,7 @@ public final class StreamProof {
         boolean timeOn = time != null && time.isEnabled();
         CLEAN.set(true);
         try {
-            // Keep menus, inventories and the client GUI in the private view.
-            mc.currentScreen = null;
+            // Render mixins omit private screens while the actual initialized screen stays active.
             if (fullbrightOn) mc.options.getGamma().setValue(fullbright.originalGamma());
             if (noBobOn) mc.options.getBobView().setValue(noBob.originalBob());
             if (timeOn && world != null) world.getLevelProperties().setTimeOfDay(time.originalTime(world));
@@ -138,7 +138,6 @@ public final class StreamProof {
             throw error;
         } finally {
             try {
-                mc.currentScreen = previousScreen;
                 mc.options.getGamma().setValue(gamma);
                 mc.options.getBobView().setValue(bob);
                 if (world != null) world.getLevelProperties().setTimeOfDay(day);

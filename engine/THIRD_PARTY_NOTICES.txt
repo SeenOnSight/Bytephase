@@ -1,0 +1,14 @@
+Bytephase feature component notices
+
+Original author: Corz. Original source metadata declares All-Rights-Reserved.
+Source: user-supplied feature source and assets, version 2.0.1 for Minecraft
+1.21.11. Original source and asset rights are retained. This notice does not
+relicense them under Bytephase's MIT or the PvP component's GPL terms.
+
+The adapted implementation is retained under engine/src/main. Bytephase modifies
+catalog registration, settings, configuration, friends, input, lifecycle,
+package and resource identifiers, and native UI integration. Source feature
+SHA-256 values are recorded in the feature inventory. Bundled asset-specific
+license notices are retained.
+
+Adaptations were made for Bytephase on 2026-11-16.

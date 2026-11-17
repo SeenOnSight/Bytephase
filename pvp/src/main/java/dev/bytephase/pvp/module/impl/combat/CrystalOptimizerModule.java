@@ -55,8 +55,6 @@ public final class CrystalOptimizerModule extends ClientModule {
 
     @Override
     protected void onEnable() {
-        var other = dev.bytephase.pvp.module.ModuleRegistry.get(MarlowOptimizerModule.class);
-        if (other != null && other.isEnabled()) other.setEnabled(false);
         this.reset();
     }
 

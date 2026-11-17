@@ -6,6 +6,7 @@ public interface CombatModule {
     String id();
     String name();
     String description();
+    default String category() { return "COMBAT"; }
     List<CombatSetting> settings();
     boolean isEnabled();
     void setEnabled(boolean enabled);

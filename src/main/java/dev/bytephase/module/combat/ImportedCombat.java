@@ -44,7 +44,7 @@ public final class ImportedCombat extends Module {
     }
 
     public ImportedCombat(CombatModule source) {
-        super(source.name(), Category.COMBAT, source.description());
+        super(source.name(), Category.valueOf(source.category()), source.description());
         delegate = source;
         for (CombatSetting setting : source.settings()) {
             var value = JsonParser.parseString(setting.json());
@@ -61,7 +61,10 @@ public final class ImportedCombat extends Module {
     }
 
     @Override
-    protected void onEnable() { delegate.setEnabled(true); }
+    protected void onEnable() {
+        delegate.setEnabled(true);
+        if (!delegate.isEnabled()) throw new IllegalStateException("Could not enable " + getName());
+    }
 
     @Override
     protected void onDisable() { delegate.setEnabled(false); }
@@ -72,7 +75,17 @@ public final class ImportedCombat extends Module {
     @Override
     public void onTickAlways() {
         if (isEnabled() != delegate.isEnabled()) setEnabled(delegate.isEnabled());
-        for (Binding binding : bindings) if (binding.revision != binding.source.revision()) binding.pull();
+        syncSettings(false);
+    }
+
+    public void syncSettings(boolean force) {
+        boolean changed = false;
+        for (Binding binding : bindings) if (force || binding.revision != binding.source.revision()) {
+            var previous = binding.local.toJson();
+            binding.pull();
+            changed |= !previous.equals(binding.local.toJson());
+        }
+        if (changed && dev.bytephase.BytePhase.config != null) dev.bytephase.BytePhase.config.requestSave();
     }
 
     @Override

@@ -49,7 +49,10 @@ public abstract class MixinRotationMultiPlayerGameMode {
     private <T> T pvp$asSent(Player player, Supplier<T> call) {
         LocalPlayer self = this.minecraft.player;
         if (player == self && !ServerRotation.isSwapped()) {
-            Rotation rotation = ServerRotation.commit(self);
+            var services = dev.bytephase.pvp.CombatIntegration.services();
+            double[] external = services == null ? null : services.interactionRotation();
+            Rotation rotation = external == null ? ServerRotation.commit(self)
+                : new Rotation((float)external[0], (float)external[1]);
             float yaw = self.getYRot();
             float pitch = self.getXRot();
             if (rotation.yaw() == yaw && rotation.pitch() == pitch) {

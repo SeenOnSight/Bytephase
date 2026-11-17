@@ -11,6 +11,11 @@ base {
     archivesName = project.archives_base_name
 }
 
+sourceSets.main {
+    java.srcDir 'engine/src/main/java'
+    resources.srcDir 'engine/src/main/resources'
+}
+
 fabricApi.configureTests {
     createSourceSet = true
     modId = 'bytephase-gametest'
@@ -26,8 +31,15 @@ dependencies {
 
 processResources {
     inputs.property 'version', project.version
+    inputs.file('engine/src/main/resources/assets/bytephase/engine-features.json')
     filesMatching('fabric.mod.json') {
         expand 'version': inputs.properties.version
+    }
+    doLast {
+        def inventory = new File(destinationDir, 'assets/bytephase/engine-features.json')
+        if (!inventory.isFile()) {
+            throw new GradleException('Bytephase feature inventory is missing from processed resources')
+        }
     }
 }
 

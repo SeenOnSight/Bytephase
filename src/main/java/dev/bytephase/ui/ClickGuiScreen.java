@@ -11,6 +11,9 @@ import dev.bytephase.module.combat.CombatIntegration;
 import dev.bytephase.module.render.UiSettings;
 import dev.bytephase.render.ClientFonts;
 import dev.bytephase.render.Render2D;
+import dev.bytephase.render.ui.LiquidBackdrop;
+import dev.bytephase.render.ui.LiquidGui;
+import dev.bytephase.render.ui.UiBackgroundImage;
 import dev.bytephase.setting.ActionKeySetting;
 import dev.bytephase.setting.BooleanSetting;
 import dev.bytephase.setting.ColorSetting;
@@ -20,12 +23,15 @@ import dev.bytephase.setting.Setting;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.texture.TextureSetup;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
@@ -36,13 +42,15 @@ import org.lwjgl.glfw.GLFW;
 
 /** Native version of the user's glass ClickGUI, backed by the live module catalog. */
 public final class ClickGuiScreen extends Screen {
-    private static final int W = 640, H = 440, SIDE = 144, BODY_X = 160, BODY_Y = 59;
-    private static final int BODY_W = W - BODY_X - 16, BODY_BOTTOM = H - 24;
-    private static final int MUTED = 0xFFA6A9D6, LINE = 0x24FFFFFF, WHITE = 0xFFF0F1FF;
+    private static final int W = 1000, H = 690, SIDE = 224, BODY_X = 248, BODY_Y = 75;
+    private static final int BODY_W = W - BODY_X - 24, BODY_BOTTOM = H - 58, DIALOG_W = 360;
+    private static final int PANEL_RADIUS = 32, DIALOG_RADIUS = 22, CARD_RADIUS = 18;
+    private static final int ROW_RADIUS = 14, NAV_RADIUS = 12, CONTROL_RADIUS = 10;
+    private static final int SETTING_ROW_HEIGHT = 42, CONTROL_HEIGHT = 32;
+    private static final int MUTED = 0xFFA6A6A6, LINE = 0x24FFFFFF, WHITE = 0xFFF0F0F0;
     private static final Identifier LOGO = Identifier.of("bytephase", "clickgui-logo.png");
+    private static final Identifier LOGO_BASE = Identifier.of("bytephase", "clickgui-logo-base.png");
     private static final int ICON_TEXTURE_SIZE = 48;
-    private static final String[] THEME_NAMES = {"Indigo", "Mint", "Ocean", "Violet", "Rose", "Amber", "Crimson"};
-    private static final int[] THEME_COLORS = {0xFF6C6FF5, 0xFF3FB68B, 0xFF3B9BE8, 0xFF9B6CF0, 0xFFEE6D9B, 0xFFE8A23B, 0xFFE5534B};
     private static Tab savedTab = Tab.COMBAT;
     private static final Map<Tab, Double> SAVED_SCROLL = new EnumMap<>(Tab.class);
 
@@ -59,9 +67,14 @@ public final class ClickGuiScreen extends Screen {
     }
     private enum Field { SEARCH, CONFIG_NAME, FRIEND_NAME, IMPORT_NAME, IMPORT_JSON }
     private enum Action { TAB, MODULE, CLOSE_DIALOG, ENABLE, BIND, ACTION_KEY, BOOL, NUMBER, MODE, COLOR,
-        RESET, SAVE, LOAD, OVERWRITE, COPY, DELETE, IMPORT, FRIEND_ADD, FRIEND_REMOVE, THEME, FIELD }
-    private record Hit(Action action, int x, int y, int w, int h, Object target, int data) {
-        boolean contains(double mx, double my) { return mx >= x && mx < x + w && my >= y && my < y + h; }
+        RESET, SAVE, LOAD, OVERWRITE, COPY, DELETE, IMPORT, FRIEND_ADD, FRIEND_REMOVE, FIELD, TEXT_SETTING, RUN_ACTION, EDITOR_BACK, PREVIEW }
+    private record Hit(Action action, float x, float y, float w, float h, Object target, int data, LiquidGui.Rect clip) {
+        Hit(Action action, float x, float y, float w, float h, Object target, int data) {
+            this(action, x, y, w, h, target, data, null);
+        }
+        boolean contains(double mx, double my) {
+            return mx >= x && mx < x + w && my >= y && my < y + h && (clip == null || clip.contains(mx, my));
+        }
     }
 
     private final UiSettings appearance;
@@ -74,6 +87,33 @@ public final class ClickGuiScreen extends Screen {
     private int caret;
     private boolean selectedAll;
     private float scale = 1, originX, originY;
+    private float baseScale = 1, animationStep = 1, openProgress = 1;
+    private long lastFrame;
+    private double navScroll;
+    private final Map<String, Float> animations = new HashMap<>();
+    private String motionKey = "";
+    private Module animatedDialog;
+    private DrawContext drawingContext;
+    private TextureSetup backdrop = TextureSetup.empty();
+    private java.util.function.Supplier<List<Setting<?>>> editorFactory;
+    private List<Setting<?>> editorSettings = List.of();
+    private String editorTitle;
+    private Screen editorParent;
+    private double editorScroll;
+    private float frameSeconds;
+    private long editorRefresh;
+    private Tab cachedModuleTab;
+    private String cachedQuery = "";
+    private List<Module> cachedModules = List.of();
+    private final Map<String, Text> labels = new HashMap<>();
+    private final Map<String, Integer> widths = new HashMap<>();
+    private String measuredFont = "";
+    private boolean measuredBold;
+    private final Map<dev.bytephase.render.ui.NativePreviewScene, PreviewFrame> previewFrames = new java.util.IdentityHashMap<>();
+    private record PreviewFrame(com.mojang.blaze3d.textures.GpuTextureView view, long time, int w, int h) { }
+    private Module editorOwner;
+    private final java.util.Set<dev.bytephase.render.ui.NativePreviewScene> failedPreviews =
+        java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
     private double mouseX, mouseY;
     private int contentHeight;
     private Module dialog, binding;
@@ -87,6 +127,7 @@ public final class ClickGuiScreen extends Screen {
     private long toastUntil;
     private boolean profileStorage = true;
     private int keyboardCard = -1;
+    private Hit lastHovered;
 
     public ClickGuiScreen() {
         super(Text.literal("Bytephase"));
@@ -97,7 +138,33 @@ public final class ClickGuiScreen extends Screen {
         }
         scrolls.putAll(SAVED_SCROLL);
         for (Field field : Field.values()) fields.put(field, "");
+        animations.put("screen-open", 0f);
     }
+
+    public static ClickGuiScreen forModule(Module module) {
+        ClickGuiScreen screen = new ClickGuiScreen();
+        screen.dialog = module;
+        for (Tab entry : Tab.values()) if (entry.category == module.getCategory()) screen.tab = entry;
+        return screen;
+    }
+
+    public static ClickGuiScreen editor(String title, Screen parent,
+                                        java.util.function.Supplier<List<Setting<?>>> factory) {
+        ClickGuiScreen screen = new ClickGuiScreen();
+        screen.editorTitle = title;
+        screen.editorParent = parent;
+        screen.editorFactory = factory;
+        return screen;
+    }
+
+    public static ClickGuiScreen page(String name) {
+        ClickGuiScreen screen = new ClickGuiScreen();
+        screen.tab = Tab.valueOf(name);
+        return screen;
+    }
+
+    public Module editedModule() { return dialog == null ? editorOwner : dialog; }
+    public ClickGuiScreen owner(Module owner) { editorOwner = owner; return this; }
 
     public static JsonObject saveLayout() {
         JsonObject object = new JsonObject();
@@ -123,7 +190,8 @@ public final class ClickGuiScreen extends Screen {
     }
 
     @Override protected void init() {
-        scale = Math.max(0.05f, Math.min(1f, Math.min((width - 16f) / W, (height - 16f) / H)));
+        baseScale = Math.max(0.05f, Math.min(1f, Math.min(width * 0.96f / W, height * 0.92f / H)));
+        scale = baseScale;
         originX = (width - W * scale) / 2;
         originY = (height - H * scale) / 2;
         if (client != null) {
@@ -133,34 +201,70 @@ public final class ClickGuiScreen extends Screen {
         }
         readProfiles();
         friends = CombatIntegration.friends();
+        if (editorFactory != null) editorSettings = List.copyOf(editorFactory.get());
+        int selectedBottom = 132 + tab.ordinal() * 44 + (tab.ordinal() >= Tab.CONFIGS.ordinal() ? 20 : 0) + 38;
+        navScroll = Math.max(navScroll, selectedBottom - (H - 95));
         hits.clear();
     }
 
     @Override public void render(DrawContext context, int mx, int my, float delta) {
+        String font = appearance == null ? "Inter" : appearance.uiFont();
+        boolean bold = appearance == null || appearance.boldHeaders();
+        if (!font.equals(measuredFont) || bold != measuredBold) {
+            measuredFont = font; measuredBold = bold; labels.clear(); widths.clear();
+        }
+        long now = System.nanoTime();
+        float seconds = lastFrame == 0 ? 1 / 60f : Math.min(0.25f, (now - lastFrame) / 1.0e9f);
+        lastFrame = now;
+        boolean animate = !client.isPaused() && client.getCurrentFps() >= 20 && seconds <= 0.05f;
+        frameSeconds = animate ? seconds : 0;
+        animationStep = animate ? 1f - (float) Math.exp(-seconds / 0.045f) : 1;
+        openProgress = motion("screen-open", 1);
+        scale = baseScale * (0.98f + 0.02f * openProgress);
+        float pixels = LiquidGui.pixelScale();
+        originX = Math.round((width - W * scale) * 0.5f * pixels) / pixels;
+        originY = Math.round((height - H * scale) * 0.5f * pixels) / pixels;
         mouseX = (mx - originX) / scale;
         mouseY = (my - originY) / scale;
-        context.fill(0, 0, width, height, 0x28050520);
         var matrices = context.getMatrices();
         matrices.pushMatrix();
         matrices.translate(originX, originY);
         matrices.scale(scale, scale);
         try { ClientFonts.ui(() -> draw(context)); }
         finally { matrices.popMatrix(); }
+        Hit hovered = null;
+        for (int index = hits.size() - 1; index >= 0; index--) {
+            Hit hit = hits.get(index);
+            if (hit.contains(mouseX, mouseY)) { hovered = hit; break; }
+        }
+        if (hovered != null && (lastHovered == null || hovered.action != lastHovered.action
+                || !Objects.equals(hovered.target, lastHovered.target) || hovered.data != lastHovered.data)) {
+            dev.bytephase.engine.categories.settings.ClientSounds.updateScrollHover();
+        }
+        lastHovered = hovered;
     }
 
     private void draw(DrawContext ctx) {
         hits.clear();
+        drawingContext = ctx;
+        backdrop = LiquidBackdrop.prepare(appearance == null || appearance.backgroundBlur());
         int alpha = Math.round((appearance == null ? 45 : appearance.panelOpacity()) * 2.55f);
-        Render2D.shadow(ctx, 0, 0, W, H, 21, 5, 0x60050528);
-        glass(ctx, 0, 0, W, H, 21, alpha << 24 | 0x1A1850, 0x38FFFFFF);
-        ctx.enableScissor(1, 1, W - 1, H - 1);
-        ctx.fillGradient(20, 1, W - 20, 45, 0x14FFFFFF, 0x00FFFFFF);
-        ctx.fill(SIDE, 14, SIDE + 1, H - 14, LINE);
+        LiquidGui.opacity(openProgress);
+        LiquidGui.shadow(ctx, 0, 18, W, H, PANEL_RADIUS, 45, 0x60080808);
+        UiBackgroundImage.panel(ctx, 0, 0, W, H, PANEL_RADIUS, alpha, 0x38FFFFFF, backdrop, appearance);
+        ctx.enableScissor(16, 16, W - 16, H - 16);
+        surface(ctx, SIDE, 22, 1, H - 44, 0, LINE, 0, 0);
         drawSidebar(ctx);
-        text(ctx, tab.label, BODY_X, 24, color(), true);
-        field(ctx, Field.SEARCH, "Search modules", W - 159, 16, 137, 26);
-        ctx.enableScissor(BODY_X, BODY_Y, W - 12, BODY_BOTTOM);
-        if (tab.category != null || !value(Field.SEARCH).isEmpty()) drawModules(ctx);
+        rowText(ctx, ellipsize(editorFactory == null ? tab.label : editorTitle,
+            editorFactory == null ? 500 : 380, 1.5f, true), BODY_X, 22, 35, color(), true, 1.5f);
+        if (editorFactory == null) field(ctx, Field.SEARCH, "Search modules", W - 224, 22, 200, 35);
+        else {
+            field(ctx, Field.SEARCH, "Search settings", W - 334, 22, 200, 35);
+            button(ctx, "Back", Action.EDITOR_BACK, W - 122, 22, 98, 35, null, 0, true);
+        }
+        ctx.enableScissor(BODY_X, BODY_Y, W - 24, BODY_BOTTOM);
+        if (editorFactory != null) drawEditor(ctx);
+        else if (tab.category != null || !value(Field.SEARCH).isEmpty()) drawModules(ctx);
         else switch (tab) {
             case CONFIGS -> drawConfigs(ctx);
             case FRIENDS -> drawFriends(ctx);
@@ -168,292 +272,409 @@ public final class ClickGuiScreen extends Screen {
             case SETTINGS -> drawSettings(ctx);
             default -> { }
         }
-        ctx.disableScissor();
-        drawScrollbar(ctx, W - 10, BODY_Y, BODY_BOTTOM - BODY_Y, scrolls.getOrDefault(tab, 0.0), contentHeight);
-        ctx.disableScissor();
-        if (dialog == null && (tab.category != null || !value(Field.SEARCH).isEmpty())) {
-            text(ctx, "Left-click to toggle  /  Right-click to configure", BODY_X, H - 15, MUTED, false);
+        if (contentHeight > BODY_BOTTOM - BODY_Y) {
+            int tint = 0x80000000 | (appearance == null ? 0x0B0B0B : appearance.panelColor() & 0xFFFFFF);
+            surface(ctx, BODY_X, BODY_Y, BODY_W, 12, 0, tint, 0, LiquidGui.GRADIENT);
+            surface(ctx, BODY_X, BODY_BOTTOM - 12, BODY_W, 12, 0, tint, 0, LiquidGui.GRADIENT | 32);
         }
+        ctx.disableScissor();
+        drawScrollbar(ctx, W - 15, BODY_Y, BODY_BOTTOM - BODY_Y, displayedScroll(), contentHeight);
+        if (editorFactory == null && dialog == null && (tab.category != null || !value(Field.SEARCH).isEmpty())) {
+            rowText(ctx, "Left-click to toggle / Right-click to configure", BODY_X, H - 34, 22, MUTED, false, 1.2f);
+        }
+        ctx.disableScissor();
         if (dialog != null) drawDialog(ctx);
         if (System.nanoTime() < toastUntil && !toast.isEmpty()) {
-            String shown = trim(toast, W - 44);
-            int tw = textRenderer.getWidth(shown) + 22;
-            glass(ctx, (W - tw) / 2, H - 29, tw, 22, 7, 0xEF000000 | accent() & 0xFFFFFF, 0x40FFFFFF);
-            text(ctx, shown, (W - tw) / 2 + 11, H - 22, WHITE, false);
+            String shown = ellipsize(toast, W - 64, 1.3f, false);
+            int tw = (int) Math.ceil(labelWidth(shown, 1.3f, false)) + 32;
+            glass(ctx, (W - tw) / 2, H - 46, tw, 32, CONTROL_RADIUS, 0xF0000000 | accent() & 0xFFFFFF, 0x40FFFFFF);
+            rowText(ctx, shown, (W - tw) / 2 + 16, H - 46, 32, WHITE, false, 1.3f);
         }
+        LiquidGui.opacity(1);
     }
 
     private void drawSidebar(DrawContext ctx) {
-        image(ctx, LOGO, 53, 20, 38, 38, 256, 256, 0xFFFFFFFF);
-        centered(ctx, "bytephase", SIDE / 2, 69, WHITE, true);
-        int y = 98;
+        image(ctx, LOGO_BASE, (SIDE - 54) / 2, 22, 54, 54, 256, 256, accent());
+        image(ctx, LOGO, (SIDE - 54) / 2, 22, 54, 54, 256, 256, accentForeground());
+        surface(ctx, (SIDE - 54) / 2, 22, 54, 54, 13, 0, 0x38FFFFFF, 0);
+        centeredRow(ctx, "bytephase", SIDE / 2.0f, 86, 24, logoTextColor(), true, 1.8f);
+        int navTop = 132, navBottom = H - 95;
+        int navHeight = Tab.values().length * 44 + 20;
+        navScroll = MathHelper.clamp(navScroll, 0, Math.max(0, navHeight - (navBottom - navTop)));
+        float shownScroll = motion("sidebar-scroll", (float) navScroll);
+        ctx.enableScissor(20, navTop, SIDE - 20, navBottom);
+        int selectedIndex = tab.ordinal();
+        float selectedY = navTop + selectedIndex * 44 + (selectedIndex >= Tab.CONFIGS.ordinal() ? 20 : 0) - shownScroll;
+        float pillY = motion("tab-pill", selectedY);
+        glass(ctx, 20, pillY, SIDE - 40, 38, NAV_RADIUS, accent(), 0x60FFFFFF);
+        float y = navTop - shownScroll;
         for (Tab entry : Tab.values()) {
-            if (entry == Tab.CONFIGS) { ctx.fill(16, y + 1, SIDE - 16, y + 2, LINE); y += 12; }
-            boolean selected = tab == entry, hover = inside(mouseX, mouseY, 12, y, SIDE - 24, 23);
-            if (selected) glass(ctx, 12, y, SIDE - 24, 23, 8, accent(), 0x60FFFFFF);
-            else if (hover) rounded(ctx, 12, y, SIDE - 24, 23, 8, 0x14FFFFFF);
-            icon(ctx, entry.icon, 23, y + 5, 13, selected ? WHITE : color());
-            text(ctx, entry.label, 45, y + 7, selected ? WHITE : color(), selected);
-            hit(Action.TAB, 12, y, SIDE - 24, 23, entry, 0);
-            y += 25;
+            if (entry == Tab.CONFIGS) {
+                surface(ctx, 20, y + 3, SIDE - 40, 1, 0, LINE, 0, 0);
+                y += 20;
+            }
+            boolean selected = tab == entry;
+            float hover = motion("nav-hover:" + entry.name(), hovered(ctx, 20, y, SIDE - 40, 38) ? 1 : 0);
+            if (!selected && hover > 0.01f) surface(ctx, 20, y, SIDE - 40, 38, NAV_RADIUS, withAlpha(WHITE, 0.06f * hover), 0, 0);
+            icon(ctx, entry.icon, 34, y + 9, 20, selected ? accentForeground() : color());
+            rowText(ctx, entry.label, 66, y, 38, selected ? accentForeground() : color(), true, 1.5f);
+            hit(Action.TAB, 20, y, SIDE - 40, 38, entry, 0);
+            y += 44;
         }
-        ctx.fill(16, H - 45, SIDE - 16, H - 44, LINE);
-        glass(ctx, 16, H - 34, 25, 25, 7, 0xFF8A6FD1, 0x50FFFFFF);
-        icon(ctx, "player", 22, H - 29, 14, WHITE);
+        ctx.disableScissor();
+        surface(ctx, 20, H - 83, SIDE - 40, 1, 0, LINE, 0, 0);
+        glass(ctx, 20, H - 68, 46, 46, NAV_RADIUS, 0xFF353535, 0x50FFFFFF);
+        icon(ctx, "player", 33, H - 55, 20, WHITE);
         String player = BytePhase.mc.player == null ? "player" : BytePhase.mc.player.getName().getString();
-        text(ctx, trim(player, 83), 49, H - 29, WHITE, true);
-        text(ctx, BytePhase.version(), 49, H - 17, MUTED, false);
+        rowText(ctx, ellipsize(player, SIDE - 98, 1.4f, true), 78, H - 67, 23, WHITE, true);
+        rowText(ctx, BytePhase.version(), 78, H - 44, 20, MUTED, false, 1.1f);
     }
 
     private List<Module> visibleModules() {
         String query = value(Field.SEARCH).toLowerCase(Locale.ROOT).replace(" ", "");
-        if (query.isEmpty()) return catalog.getOrDefault(tab.category, List.of());
-        return catalog.values().stream().flatMap(List::stream)
-            .filter(module -> module.getName().toLowerCase(Locale.ROOT).contains(query))
+        if (tab == cachedModuleTab && query.equals(cachedQuery)) return cachedModules;
+        cachedModuleTab = tab;
+        cachedQuery = query;
+        if (query.isEmpty()) return cachedModules = catalog.getOrDefault(tab.category, List.of());
+        return cachedModules = catalog.values().stream().flatMap(List::stream)
+            .filter(module -> module.getName().toLowerCase(Locale.ROOT).replace(" ", "").contains(query))
             .sorted(Comparator.comparing(Module::getName, String.CASE_INSENSITIVE_ORDER)).toList();
     }
 
     private void drawModules(DrawContext ctx) {
         List<Module> modules = visibleModules();
-        int gap = 9, cardW = (BODY_W - gap) / 2, cardH = 35;
-        contentHeight = ((modules.size() + 1) / 2) * (cardH + gap);
-        double scroll = clampScroll();
+        int gap = 12, cardW = (BODY_W - gap) / 2, cardH = 48;
+        contentHeight = Math.max(0, ((modules.size() + 1) / 2) * (cardH + gap) - gap);
+        float scroll = (float) clampScroll();
         if (modules.isEmpty()) { empty(ctx, "No modules match your search.", BODY_Y + 12); return; }
         for (int i = 0; i < modules.size(); i++) {
-            int x = BODY_X + i % 2 * (cardW + gap), y = BODY_Y + i / 2 * (cardH + gap) - (int) scroll;
+            int x = BODY_X + i % 2 * (cardW + gap);
+            float y = BODY_Y + i / 2 * (cardH + gap) - scroll;
             if (y + cardH <= BODY_Y || y >= BODY_BOTTOM) continue;
             Module module = modules.get(i);
-            boolean hovered = inside(mouseX, mouseY, x, y, cardW, cardH) && dialog == null;
-            boolean on = module.isEnabled();
-            int border = on ? 0xAA000000 | accent() & 0xFFFFFF : LINE;
-            if (hovered || keyboardCard == i) border = 0x70FFFFFF;
-            glass(ctx, x, y, cardW, cardH, 11, hovered ? 0x1BFFFFFF : 0x10FFFFFF, border);
-            icon(ctx, categoryIcon(module.getCategory()), x + 11, y + 11, 13, on ? WHITE : MUTED);
-            String name = trim(module.getName(), cardW - 106);
-            text(ctx, name, x + 32, y + 12, on ? WHITE : MUTED, false);
-            String bind = Keybinds.getKeyName(module);
-            if (!bind.equalsIgnoreCase("unknown") && !bind.equalsIgnoreCase("none") && !bind.equals("?")) {
-                Render2D.scaledText(ctx, textRenderer, trim(bind, 35), x + cardW - 65, y + 13, 0.85f, MUTED);
-            }
-            toggle(ctx, x + cardW - 30, y + 12, on, true);
+            motionKey = "module:" + module.getName();
+            float hover = motion(motionKey + ":hover", hovered(ctx, x, y, cardW, cardH) && dialog == null ? 1 : 0);
+            float enabled = motion(motionKey + ":enabled", module.isEnabled() ? 1 : 0);
+            if (enabled > 0.01f) LiquidGui.glow(ctx, x, y, cardW, cardH, CARD_RADIUS, 22, withAlpha(accent(), 0.20f * enabled));
+            int border = Render2D.lerpColor(LINE, withAlpha(accent(), 0.7f), enabled);
+            border = Render2D.lerpColor(border, 0x70FFFFFF, hover);
+            if (keyboardCard == i) border = accent();
+            glass(ctx, x, y, cardW, cardH, CARD_RADIUS, withAlpha(WHITE, 0.07f + 0.06f * hover), border);
+            int foreground = Render2D.lerpColor(MUTED, WHITE, enabled);
+            icon(ctx, categoryIcon(module.getCategory()), x + 14, y + 14, 20, foreground);
+            String bind = Keybinds.keyCode(module) < 0 ? "" : ellipsize(Keybinds.getKeyName(module), 64, 1.1f, false);
+            float bindW = labelWidth(bind, 1.1f, false);
+            float switchX = x + cardW - 14 - 28;
+            float bindX = switchX - 12 - bindW;
+            float nameX = x + 46;
+            float nameRight = bind.isEmpty() ? switchX - 12 : bindX - 12;
+            rowText(ctx, ellipsize(module.getName(), nameRight - nameX, 1.4f, false), nameX, y, cardH, foreground, false);
+            if (!bind.isEmpty()) rowText(ctx, bind, bindX, y, cardH, MUTED, false, 1.1f);
+            toggle(ctx, switchX, y + 16, module.isEnabled(), true);
             hit(Action.MODULE, x, y, cardW, cardH, module, i);
         }
     }
 
     private void drawConfigs(DrawContext ctx) {
-        contentHeight = 186 + Math.max(1, profiles.size()) * 40;
-        int y = BODY_Y - (int) clampScroll();
-        text(ctx, "Create config", BODY_X, y + 2, color(), true);
-        field(ctx, Field.CONFIG_NAME, "Config name", BODY_X, y + 20, BODY_W - 102, 26);
-        button(ctx, "Save current", Action.SAVE, BODY_X + BODY_W - 95, y + 20, 95, 26, null, 0, false);
-        text(ctx, "Your configs", BODY_X, y + 63, color(), true);
-        if (!profileStorage) empty(ctx, "Profile storage unavailable. Reopen Configs to retry.", y + 82);
-        else if (profiles.isEmpty()) empty(ctx, "No configs yet. Save the current settings above.", y + 82);
+        contentHeight = 268 + Math.max(1, profiles.size()) * 70;
+        float y = BODY_Y - (float) clampScroll();
+        rowText(ctx, "Create config", BODY_X, y, 24, color(), true);
+        field(ctx, Field.CONFIG_NAME, "Config name", BODY_X, y + 34, BODY_W - 142, 38);
+        button(ctx, "Save current", Action.SAVE, BODY_X + BODY_W - 130, y + 34, 130, 38, null, 0, false);
+        rowText(ctx, "Your configs", BODY_X, y + 86, 24, color(), true);
+        if (!profileStorage) empty(ctx, "Profile storage unavailable. Reopen Configs to retry.", y + 120);
+        else if (profiles.isEmpty()) empty(ctx, "No configs yet. Save the current settings above.", y + 120);
         for (int i = 0; i < profiles.size(); i++) {
             String name = profiles.get(i);
-            int cy = y + 82 + i * 40;
-            if (cy + 35 <= BODY_Y || cy >= BODY_BOTTOM) continue;
-            glass(ctx, BODY_X, cy, BODY_W, 34, 8, 0x10FFFFFF, name.equals(loadedProfile) ? accent() : LINE);
-            text(ctx, trim(name, 140), BODY_X + 10, cy + 7, color(), true);
-            text(ctx, name.equals(loadedProfile) ? "Loaded" : "Module settings and states", BODY_X + 10, cy + 20, MUTED, false);
-            int bx = BODY_X + BODY_W - 231;
-            button(ctx, "Load", Action.LOAD, bx, cy + 7, 38, 21, name, 0, false);
-            button(ctx, "Overwrite", Action.OVERWRITE, bx + 43, cy + 7, 69, 21, name, 0, true);
-            button(ctx, "Copy", Action.COPY, bx + 117, cy + 7, 41, 21, name, 0, true);
-            button(ctx, name.equals(confirmDelete) ? "Confirm" : "Delete", Action.DELETE, bx + 163, cy + 7, 60, 21, name, 0, true);
+            float cy = y + 120 + i * 70;
+            if (cy + 58 <= BODY_Y || cy >= BODY_BOTTOM) continue;
+            glass(ctx, BODY_X, cy, BODY_W, 58, ROW_RADIUS, 0x10FFFFFF, name.equals(loadedProfile) ? accent() : LINE);
+            rowText(ctx, ellipsize(name, BODY_W - 350, 1.4f, true), BODY_X + 14, cy + 8, 22, color(), true);
+            rowText(ctx, name.equals(loadedProfile) ? "Loaded" : "Module settings and states", BODY_X + 14, cy + 30, 20, MUTED, false, 1.2f);
+            int bx = BODY_X + BODY_W - 322;
+            button(ctx, "Load", Action.LOAD, bx, cy + 13, 54, 32, name, 0, false);
+            button(ctx, "Overwrite", Action.OVERWRITE, bx + 62, cy + 13, 94, 32, name, 0, true);
+            button(ctx, "Copy", Action.COPY, bx + 164, cy + 13, 58, 32, name, 0, true);
+            button(ctx, name.equals(confirmDelete) ? "Confirm" : "Delete", Action.DELETE, bx + 230, cy + 13, 78, 32, name, 0, true);
         }
-        int iy = y + 94 + Math.max(1, profiles.size()) * 40;
-        text(ctx, "Import a copied Bytephase config", BODY_X, iy, color(), true);
-        field(ctx, Field.IMPORT_JSON, "Paste config JSON (Ctrl+V)", BODY_X, iy + 17, BODY_W, 31);
-        field(ctx, Field.IMPORT_NAME, "Name for imported config", BODY_X, iy + 55, BODY_W - 83, 26);
-        button(ctx, "Import", Action.IMPORT, BODY_X + BODY_W - 75, iy + 55, 75, 26, null, 0, false);
-        contentHeight = iy + 92 - y;
+        float iy = y + 138 + Math.max(1, profiles.size()) * 70;
+        rowText(ctx, "Import a copied Bytephase config", BODY_X, iy, 24, color(), true);
+        field(ctx, Field.IMPORT_JSON, "Paste config JSON (Ctrl+V)", BODY_X, iy + 34, BODY_W, 90);
+        field(ctx, Field.IMPORT_NAME, "Name for imported config", BODY_X, iy + 136, BODY_W - 110, 38);
+        button(ctx, "Import", Action.IMPORT, BODY_X + BODY_W - 98, iy + 136, 98, 38, null, 0, false);
+        contentHeight = (int) (iy + 188 - y);
     }
 
     private void drawFriends(DrawContext ctx) {
-        contentHeight = 52 + Math.max(1, friends.size()) * 40;
-        int y = BODY_Y - (int) clampScroll();
-        field(ctx, Field.FRIEND_NAME, "Add a friend by name", BODY_X, y, BODY_W - 69, 26);
-        button(ctx, "Add", Action.FRIEND_ADD, BODY_X + BODY_W - 61, y, 61, 26, null, 0, false);
-        if (friends.isEmpty()) empty(ctx, "No friends added yet.", y + 45);
+        contentHeight = 64 + Math.max(1, friends.size()) * 70;
+        float y = BODY_Y - (float) clampScroll();
+        field(ctx, Field.FRIEND_NAME, "Add a friend by name", BODY_X, y, BODY_W - 94, 38);
+        button(ctx, "Add", Action.FRIEND_ADD, BODY_X + BODY_W - 82, y, 82, 38, null, 0, false);
+        if (friends.isEmpty()) empty(ctx, "No friends added yet.", y + 64);
         for (int i = 0; i < friends.size(); i++) {
-            int cy = y + 44 + i * 40;
-            if (cy + 34 <= BODY_Y || cy >= BODY_BOTTOM) continue;
-            glass(ctx, BODY_X, cy, BODY_W, 34, 8, 0x10FFFFFF, LINE);
-            icon(ctx, "player", BODY_X + 11, cy + 10, 14, MUTED);
-            text(ctx, friends.get(i), BODY_X + 34, cy + 12, color(), false);
-            button(ctx, "Remove", Action.FRIEND_REMOVE, BODY_X + BODY_W - 76, cy + 7, 66, 21, friends.get(i), 0, true);
+            float cy = y + 64 + i * 70;
+            if (cy + 58 <= BODY_Y || cy >= BODY_BOTTOM) continue;
+            glass(ctx, BODY_X, cy, BODY_W, 58, ROW_RADIUS, 0x10FFFFFF, LINE);
+            icon(ctx, "player", BODY_X + 14, cy + 19, 20, MUTED);
+            rowText(ctx, ellipsize(friends.get(i), BODY_W - 180, 1.4f, false), BODY_X + 46, cy, 58, color(), false);
+            button(ctx, "Remove", Action.FRIEND_REMOVE, BODY_X + BODY_W - 110, cy + 13, 96, 32, friends.get(i), 0, true);
         }
     }
 
     private void drawThemes(DrawContext ctx) {
-        List<Setting<?>> settings = appearance == null ? List.of() : appearance.getSettings().stream()
-            .filter(ColorSetting.class::isInstance).toList();
-        contentHeight = 97 + settings.stream().filter(Setting::isVisible).mapToInt(ClickGuiScreen::settingHeight).sum();
-        int y = BODY_Y - (int) clampScroll();
-        text(ctx, "Accent color", BODY_X, y, color(), true);
-        for (int i = 0; i < THEME_COLORS.length; i++) {
-            int x = BODY_X + i * 61;
-            glass(ctx, x, y + 24, 34, 34, 9, THEME_COLORS[i], accent() == THEME_COLORS[i] ? WHITE : 0x00FFFFFF);
-            hit(Action.THEME, x, y + 24, 44, 47, null, i);
-            Render2D.scaledText(ctx, textRenderer, THEME_NAMES[i], x, y + 65, 0.9f, MUTED);
-        }
-        int sy = y + 97;
-        for (Setting<?> setting : settings) {
-            if (!setting.isVisible()) continue;
+        List<Setting<?>> settings = appearance == null ? List.of() : appearance.getSettings().stream().filter(ColorSetting.class::isInstance).toList();
+        contentHeight = 76 + settings.stream().filter(Setting::isVisible).mapToInt(ClickGuiScreen::settingHeight).sum();
+        float y = BODY_Y - (float) clampScroll();
+        rowText(ctx, "Custom colors", BODY_X, y, 24, color(), true);
+        rowText(ctx, "Click any color to choose freely, or paste a hex value.", BODY_X, y + 30, 24, MUTED, false, 1.2f);
+        float sy = y + 76;
+        for (Setting<?> setting : settings) if (setting.isVisible()) {
             drawSetting(ctx, setting, BODY_X, sy, BODY_W);
             sy += settingHeight(setting);
         }
     }
 
     private void drawSettings(DrawContext ctx) {
-        List<Setting<?>> settings = appearance == null ? List.of() : appearance.getSettings().stream()
-            .filter(setting -> !(setting instanceof ColorSetting)).toList();
-        contentHeight = 28 + settings.stream().filter(Setting::isVisible)
-            .mapToInt(ClickGuiScreen::settingHeight).sum();
-        int y = BODY_Y - (int) clampScroll();
-        text(ctx, "Interface and HUD", BODY_X, y, color(), true);
-        int sy = y + 28;
-        for (Setting<?> setting : settings) {
-            if (!setting.isVisible()) continue;
+        List<Setting<?>> settings = appearance == null ? List.of() : appearance.getSettings().stream().filter(setting -> !(setting instanceof ColorSetting)).toList();
+        contentHeight = 68 + settings.stream().filter(Setting::isVisible).mapToInt(ClickGuiScreen::settingHeight).sum();
+        float y = BODY_Y - (float) clampScroll();
+        rowText(ctx, "Interface and HUD", BODY_X, y, 24, color(), true);
+        rowText(ctx, ellipsize(UiBackgroundImage.status(), BODY_W, 1.2f, false), BODY_X, y + 28, 24, MUTED, false, 1.2f);
+        float sy = y + 68;
+        for (Setting<?> setting : settings) if (setting.isVisible()) {
             drawSetting(ctx, setting, BODY_X, sy, BODY_W);
             sy += settingHeight(setting);
         }
     }
 
-    private void drawDialog(DrawContext ctx) {
-        hits.clear(); // Modal settings own input until closed.
-        focused = null;
-        ctx.fill(0, 0, W, H, 0x88050528);
-        int settingsH = dialog.getSettings().stream().filter(Setting::isVisible).mapToInt(ClickGuiScreen::settingHeight).sum();
-        dialogH = Math.min(390, Math.max(174, settingsH + 145));
-        dialogX = (W - 310) / 2;
-        dialogY = (H - dialogH) / 2;
-        glass(ctx, dialogX, dialogY, 310, dialogH, 15, 0xEF2C2A65, 0x50FFFFFF);
-        text(ctx, trim(dialog.getName(), 212), dialogX + 14, dialogY + 15, WHITE, true);
-        button(ctx, "Close", Action.CLOSE_DIALOG, dialogX + 250, dialogY + 10, 46, 23, null, 0, true);
-        int y = dialogY + 43;
-        text(ctx, "Enabled", dialogX + 14, y + 6, color(), false);
-        toggle(ctx, dialogX + 270, y + 3, dialog.isEnabled(), false);
-        hit(Action.ENABLE, dialogX + 14, y, 282, 23, dialog, 0);
-        text(ctx, "Keybind", dialogX + 14, y + 33, color(), false);
-        String bind = binding == dialog ? "Press a key..." : Keybinds.getKeyName(dialog);
-        button(ctx, trim(bind, 118), Action.BIND, dialogX + 164, y + 25, 132, 23, dialog, 0, true);
-        int top = y + 59, bottom = dialogY + dialogH - 47;
-        dialogContentHeight = settingsH;
-        dialogScroll = MathHelper.clamp(dialogScroll, 0, Math.max(0, settingsH - (bottom - top)));
-        ctx.enableScissor(dialogX + 12, top, dialogX + 299, bottom);
-        int sy = top - (int) dialogScroll;
-        for (Setting<?> setting : dialog.getSettings()) {
-            if (!setting.isVisible()) continue;
-            drawSetting(ctx, setting, dialogX + 14, sy, 282);
-            sy += settingHeight(setting);
+    private void drawEditor(DrawContext ctx) {
+        if (dragging == null && System.nanoTime() > editorRefresh
+                && editorSettings.stream().anyMatch(dev.bytephase.setting.PreviewSetting.class::isInstance)) {
+            editorRefresh = System.nanoTime() + 250000000L;
+            editorSettings = List.copyOf(editorFactory.get());
         }
-        ctx.disableScissor();
-        drawScrollbar(ctx, dialogX + 302, top, bottom - top, dialogScroll, settingsH);
-        ctx.fill(dialogX + 14, dialogY + dialogH - 39, dialogX + 296, dialogY + dialogH - 38, LINE);
-        button(ctx, "Reset module", Action.RESET, dialogX + 14, dialogY + dialogH - 31, 108, 23, dialog, 0, true);
-        text(ctx, "Esc: close / Backspace: clear bind", dialogX + 134, dialogY + dialogH - 23, MUTED, false, 0.85f);
+        String query = value(Field.SEARCH).toLowerCase(Locale.ROOT);
+        List<Setting<?>> settings = editorSettings.stream().filter(Setting::isVisible)
+            .filter(setting -> setting.getName().toLowerCase(Locale.ROOT).contains(query)).toList();
+        contentHeight = settings.stream().mapToInt(ClickGuiScreen::settingHeight).sum();
+        float y = BODY_Y - (float) clampScroll();
+        if (settings.isEmpty()) { empty(ctx, "No settings match your search.", BODY_Y + 12); return; }
+        for (Setting<?> setting : settings) {
+            if (y + settingHeight(setting) > BODY_Y && y < BODY_BOTTOM) drawSetting(ctx, setting, BODY_X, y, BODY_W);
+            y += settingHeight(setting);
+        }
     }
 
-    private void drawSetting(DrawContext ctx, Setting<?> setting, int x, int y, int w) {
+    private void drawDialog(DrawContext ctx) {
+        hits.clear();
+        focused = null;
+        if (animatedDialog != dialog) {
+            animatedDialog = dialog;
+            animations.put("dialog-open:" + dialog.getName(), 0f);
+            animations.put("dialog-scroll:" + dialog.getName(), 0f);
+        }
+        int settingsH = dialog.getSettings().stream().filter(Setting::isVisible).mapToInt(ClickGuiScreen::settingHeight).sum();
+        dialogH = Math.min((int) (H * 0.86f), Math.max(220, settingsH + 186));
+        dialogX = (W - DIALOG_W) / 2;
+        dialogY = (H - dialogH) / 2;
+        surface(ctx, 0, 0, W, H, PANEL_RADIUS, 0x4D080808, 0, 0);
+        float progress = motion("dialog-open:" + dialog.getName(), 1);
+        float zoom = 0.98f + 0.02f * progress;
+        var matrices = ctx.getMatrices();
+        matrices.pushMatrix();
+        matrices.translate(W / 2f, H / 2f);
+        matrices.scale(zoom, zoom);
+        matrices.translate(-W / 2f, -H / 2f);
+        LiquidGui.opacity(openProgress * progress);
+        try {
+            LiquidGui.shadow(ctx, dialogX, dialogY + 12, DIALOG_W, dialogH, DIALOG_RADIUS, 30, 0x60000000);
+            UiBackgroundImage.panel(ctx, dialogX, dialogY, DIALOG_W, dialogH, DIALOG_RADIUS, 208, 0x40FFFFFF, backdrop, appearance);
+            rowText(ctx, ellipsize(dialog.getName(), DIALOG_W - 116, 1.6f, true), dialogX + 16, dialogY + 12, 34, WHITE, true, 1.6f);
+            button(ctx, "Close", Action.CLOSE_DIALOG, dialogX + DIALOG_W - 90, dialogY + 12, 74, 32, null, 0, true);
+            float y = dialogY + 56;
+            surface(ctx, dialogX + 16, y, DIALOG_W - 32, 1, 0, LINE, 0, 0);
+            rowText(ctx, "Enabled", dialogX + 18, y, 42, color(), false);
+            motionKey = "dialog-enabled:" + dialog.getName();
+            toggle(ctx, dialogX + DIALOG_W - 56, y + 10, dialog.isEnabled(), false);
+            hit(Action.ENABLE, dialogX + 16, y, DIALOG_W - 32, 42, dialog, 0);
+            rowText(ctx, "Keybind", dialogX + 18, y + 42, 42, color(), false);
+            String bind = binding == dialog ? "Press a key…" : Keybinds.keyCode(dialog) < 0 ? "None" : Keybinds.getKeyName(dialog);
+            button(ctx, bind, Action.BIND, dialogX + DIALOG_W - 172, y + 47, 156, 32, dialog, 0, true);
+            int top = dialogY + 146, bottom = dialogY + dialogH - 54;
+            dialogContentHeight = settingsH;
+            dialogScroll = MathHelper.clamp(dialogScroll, 0, Math.max(0, settingsH - (bottom - top)));
+            float shownScroll = motion("dialog-scroll:" + dialog.getName(), (float) dialogScroll);
+            ctx.enableScissor(dialogX + 16, top, dialogX + DIALOG_W - 16, bottom);
+            float sy = top - shownScroll;
+            for (Setting<?> setting : dialog.getSettings()) if (setting.isVisible()) {
+                drawSetting(ctx, setting, dialogX + 18, sy, DIALOG_W - 36);
+                sy += settingHeight(setting);
+            }
+            ctx.disableScissor();
+            drawScrollbar(ctx, dialogX + DIALOG_W - 9, top, bottom - top, shownScroll, settingsH);
+            surface(ctx, dialogX + 16, dialogY + dialogH - 46, DIALOG_W - 32, 1, 0, LINE, 0, 0);
+            button(ctx, "Reset module", Action.RESET, dialogX + 16, dialogY + dialogH - 38, 130, 30, dialog, 0, true);
+            rowText(ctx, "Esc: close", dialogX + 164, dialogY + dialogH - 38, 30, MUTED, false, 1.2f);
+        } finally {
+            matrices.popMatrix();
+            LiquidGui.opacity(openProgress);
+        }
+    }
+
+    private void drawSetting(DrawContext ctx, Setting<?> setting, int x, float y, int w) {
         int h = settingHeight(setting);
-        ctx.fill(x, y, x + w, y + 1, LINE);
-        String label = setting.getName();
-        text(ctx, trim(label, w / 2 - 9), x, y + 10, color(), false);
+        motionKey = "setting:" + (dialog == null ? tab.name() : dialog.getName()) + ":" + setting.getName();
+        if (setting instanceof dev.bytephase.setting.PreviewSetting preview) {
+            rowText(ctx, preview.getName(), x, y, 30, color(), true);
+            glass(ctx, x, y + 34, w, 260, ROW_RADIUS, 0x60080808, LINE);
+            boolean ready = false;
+            preview.failed = failedPreviews.contains(preview.scene);
+            if (!preview.failed) try {
+                LiquidGui.Rect rect = LiquidGui.rect(ctx, x, y + 34, w, 260);
+                float pw = rect.w() * LiquidGui.pixelScale(), ph = rect.h() * LiquidGui.pixelScale();
+                float quality = Math.min(1, Math.min(960 / Math.max(1, pw), 640 / Math.max(1, ph)));
+                int renderW = Math.max(1, Math.round(pw * quality)), renderH = Math.max(1, Math.round(ph * quality));
+                long now = System.nanoTime();
+                PreviewFrame previous = previewFrames.get(preview.scene);
+                com.mojang.blaze3d.textures.GpuTextureView view;
+                if (previous != null && previous.w == renderW && previous.h == renderH
+                        && now - previous.time < 33333333L) view = previous.view;
+                else {
+                    float elapsed = frameSeconds == 0 ? 0 : previous == null ? frameSeconds
+                        : Math.min(0.1f, (now - previous.time) / 1.0e9f);
+                    view = preview.scene.nativeFrame(renderW, renderH, elapsed);
+                    previewFrames.put(preview.scene, new PreviewFrame(view, now, renderW, renderH));
+                }
+                if (view != null) {
+                    LiquidGui.picture(ctx, x, y + 34, w, 260, ROW_RADIUS, view);
+                    ready = true;
+                }
+            } catch (RuntimeException | LinkageError error) {
+                preview.failed = true;
+                failedPreviews.add(preview.scene);
+                BytePhase.LOGGER.warn("Native model preview failed", error);
+            }
+            if (!ready) centeredRow(ctx, preview.failed ? "Preview unavailable" : "Loading preview…",
+                x + w / 2f, y + 34, 260, MUTED, false);
+            rowText(ctx, "Drag to rotate · Scroll to zoom", x, y + 299, 22, MUTED, false, 1.2f);
+            hit(Action.PREVIEW, x, y + 34, w, 260, preview, 0);
+            return;
+        }
+        surface(ctx, x, y, w, 1, 0, LINE, 0, 0);
+        int controlW = Math.min(180, w / 2), controlX = x + w - controlW;
+        rowText(ctx, ellipsize(setting.getName(), w - controlW - 14, 1.4f, false), x, y, SETTING_ROW_HEIGHT, color(), false);
         if (setting instanceof BooleanSetting bool) {
-            toggle(ctx, x + w - 26, y + 7, bool.getValue(), false);
+            toggle(ctx, x + w - 38, y + 10, bool.getValue(), false);
             if (setting.getName().equals("StreamProof")) {
-                String state = bool.getValue() ? dev.bytephase.render.capture.StreamProof.status()
-                    : "Window capture - Ctrl+Shift+F9 toggles";
-                Render2D.scaledText(ctx, textRenderer, trim(state, w - 30),
-                    x, y + 23, 0.85f, MUTED);
+                String state = bool.getValue() ? dev.bytephase.render.capture.StreamProof.status() : "Window capture · Ctrl+Shift+F9 toggles";
+                rowText(ctx, ellipsize(state, w, 1.2f, false), x, y + SETTING_ROW_HEIGHT, 22, MUTED, false, 1.2f);
             }
             hit(Action.BOOL, x, y, w, h, setting, 0);
         } else if (setting instanceof ModeSetting mode) {
-            int bx = x + w / 2;
-            glass(ctx, bx, y + 5, w / 2, 22, 6, 0x18FFFFFF, LINE);
-            text(ctx, trim(mode.getValue(), w / 2 - 24), bx + 8, y + 12, color(), false);
-            text(ctx, ">", x + w - 12, y + 12, MUTED, false);
-            hit(Action.MODE, bx, y + 5, w / 2, 22, setting, 0);
+            glass(ctx, controlX, y + 5, controlW, CONTROL_HEIGHT, 8, 0x20FFFFFF, LINE);
+            rowText(ctx, ellipsize(mode.getValue(), controlW - 32, 1.3f, false), controlX + 10, y, SETTING_ROW_HEIGHT, color(), false, 1.3f);
+            rowText(ctx, "›", x + w - 17, y, SETTING_ROW_HEIGHT, MUTED, false, 1.3f);
+            hit(Action.MODE, controlX, y + 5, controlW, CONTROL_HEIGHT, setting, 0);
         } else if (setting instanceof ActionKeySetting key) {
-            String shown = actionBinding == key ? "Press key or mouse..." : actionKeyName(key.getValue());
-            button(ctx, trim(shown, w / 2 - 12), Action.ACTION_KEY, x + w / 2, y + 5, w / 2, 22, key, 0, true);
+            String shown = actionBinding == key ? "Press key or mouse…" : actionKeyName(key.getValue());
+            button(ctx, shown, Action.ACTION_KEY, controlX, y + 5, controlW, CONTROL_HEIGHT, key, 0, true);
+        } else if (setting instanceof dev.bytephase.setting.LabelSetting info) {
+            rowText(ctx, ellipsize(info.getValue(), controlW, 1.3f, false), controlX,
+                y, SETTING_ROW_HEIGHT, MUTED, false, 1.3f);
+        } else if (setting instanceof dev.bytephase.setting.StringSetting text) {
+            button(ctx, text.getValue().isBlank() ? "Edit…" : text.getValue(), Action.TEXT_SETTING, controlX, y + 5, controlW, CONTROL_HEIGHT, setting, 0, true);
+        } else if (setting instanceof dev.bytephase.setting.ActionSetting action) {
+            button(ctx, action.label(), Action.RUN_ACTION, controlX, y + 5, controlW, CONTROL_HEIGHT, setting, 0, true);
         } else if (setting instanceof NumberSetting number) {
-            int trackX = x + w / 2, trackW = w / 2 - 45;
-            text(ctx, trim(formatNumber(number.getValue()), 40), x + w - 38, y + 11, MUTED, false);
-            slider(ctx, trackX, y + 16, trackW,
-                (number.getValue() - number.getMin()) / Math.max(1e-9, number.getMax() - number.getMin()), accent());
-            hit(Action.NUMBER, trackX, y + 6, trackW, 23, setting, 0);
+            int trackW = controlW - 48;
+            rowText(ctx, ellipsize(formatNumber(number.getValue()), 42, 1.2f, false), x + w - 42, y, SETTING_ROW_HEIGHT, MUTED, false, 1.2f);
+            slider(ctx, controlX, y + SETTING_ROW_HEIGHT / 2f, trackW, (number.getValue() - number.getMin()) / Math.max(1e-9, number.getMax() - number.getMin()), accent());
+            hit(Action.NUMBER, controlX, y + 5, trackW, CONTROL_HEIGHT, setting, 0);
         } else if (setting instanceof ColorSetting color) {
-            rounded(ctx, x + w - 24, y + 7, 22, 16, 5, 0xFF000000 | color.rgb());
-            for (int i = 0; i < 3; i++) {
-                int cy = y + 31 + i * 15;
-                int channel = i == 0 ? color.red() : i == 1 ? color.green() : color.blue();
-                text(ctx, new String[] {"R", "G", "B"}[i], x + 6, cy, MUTED, false);
-                slider(ctx, x + 23, cy + 5, w - 55, channel / 255.0, new int[] {0xFFF17A9C, 0xFF6DD8B0, 0xFF8FA8FF}[i]);
-                text(ctx, Integer.toString(channel), x + w - 26, cy, MUTED, false);
-                hit(Action.COLOR, x + 23, cy - 2, w - 55, 13, color, i == 0 ? 16 : i == 1 ? 8 : 0);
-            }
+            String hex = color.alpha() == 255 ? String.format(Locale.ROOT, "#%06X", color.rgb())
+                : String.format(Locale.ROOT, "#%08X", color.getValue());
+            glass(ctx, controlX, y + 5, controlW, CONTROL_HEIGHT, 8, 0x20FFFFFF, LINE);
+            surface(ctx, controlX + 8, y + 10, 22, 22, 6, 0xFF000000 | color.rgb(), 0x50FFFFFF, 0);
+            rowText(ctx, hex, controlX + 38, y, SETTING_ROW_HEIGHT, color(), false, 1.2f);
+            hit(Action.COLOR, controlX, y + 5, controlW, CONTROL_HEIGHT, color, 0);
         }
     }
 
-    private static int settingHeight(Setting<?> setting) { return setting instanceof ColorSetting ? 81 : 34; }
-    private void slider(DrawContext ctx, int x, int y, int w, double fraction, int color) {
-        int fill = (int) Math.round(w * MathHelper.clamp(fraction, 0, 1));
-        rounded(ctx, x, y - 1, w, 3, 1, 0x50050528);
-        if (fill > 0) rounded(ctx, x, y - 1, fill, 3, 1, color);
-        rounded(ctx, x + fill - 3, y - 3, 6, 7, 3, WHITE);
+    private static int settingHeight(Setting<?> setting) {
+        if (setting instanceof dev.bytephase.setting.PreviewSetting) return 330;
+        if (setting instanceof BooleanSetting && setting.getName().equals("StreamProof")) return 66;
+        return SETTING_ROW_HEIGHT;
     }
-    private void toggle(DrawContext ctx, int x, int y, boolean on, boolean small) {
-        int w = small ? 20 : 26, h = small ? 12 : 16;
-        rounded(ctx, x, y, w, h, h / 2, on ? accent() : 0x990B110E);
-        Render2D.roundedOutline(ctx, x, y, w, h, h / 2, LINE);
-        rounded(ctx, x + (on ? w - h + 2 : 2), y + 2, h - 4, h - 4, (h - 4) / 2, WHITE);
+    private void slider(DrawContext ctx, float x, float centerY, int w, double fraction, int color) {
+        float fill = w * (float) MathHelper.clamp(fraction, 0, 1);
+        surface(ctx, x, centerY - 2, w, 4, 2, 0x60080808, 0, 0);
+        if (fill > 0) surface(ctx, x, centerY - 2, fill, 4, 2, color, 0, 0);
+        surface(ctx, x + fill - 5, centerY - 5, 10, 10, 5, WHITE, 0x30FFFFFF, 0);
+    }
+    private void toggle(DrawContext ctx, float x, float y, boolean on, boolean small) {
+        int w = small ? 28 : 38, h = small ? 16 : 22, knob = small ? 10 : 14, inset = small ? 2 : 3;
+        float value = motion(motionKey + ":toggle", on ? 1 : 0);
+        surface(ctx, x, y, w, h, h / 2f, Render2D.lerpColor(0xFF161616, accent(), value), LINE, 0);
+        float knobX = x + inset + value * (w - knob - 2 * inset);
+        surface(ctx, knobX, y + (h - knob) / 2f, knob, knob, knob / 2f, 0xFFF0F0F0, 0, 0);
     }
     private void drawScrollbar(DrawContext ctx, int x, int y, int h, double scroll, int content) {
         if (content <= h || h <= 0) return;
-        rounded(ctx, x, y, 2, h, 1, 0x16FFFFFF);
-        int thumb = Math.max(16, h * h / content);
-        int top = y + (int) ((h - thumb) * MathHelper.clamp(scroll / Math.max(1, content - h), 0, 1));
-        rounded(ctx, x, top, 2, thumb, 1, 0x80C9CCFF);
+        surface(ctx, x, y, 3, h, 1.5f, 0x16FFFFFF, 0, 0);
+        float thumb = Math.max(24, (float) h * h / content);
+        float top = y + (h - thumb) * (float) MathHelper.clamp(scroll / Math.max(1, content - h), 0, 1);
+        surface(ctx, x, top, 3, thumb, 1.5f, 0x80C0C0C0, 0, 0);
     }
     private double clampScroll() {
-        double value = MathHelper.clamp(scrolls.getOrDefault(tab, 0.0), 0, Math.max(0, contentHeight - (BODY_BOTTOM - BODY_Y)));
-        scrolls.put(tab, value);
-        return value;
+        if (editorFactory != null) {
+            editorScroll = MathHelper.clamp(editorScroll, 0, Math.max(0, contentHeight - (BODY_BOTTOM - BODY_Y)));
+            return motion("editor-scroll", (float) editorScroll);
+        }
+        double target = MathHelper.clamp(scrolls.getOrDefault(tab, 0.0), 0, Math.max(0, contentHeight - (BODY_BOTTOM - BODY_Y)));
+        scrolls.put(tab, target);
+        return motion("scroll:" + tab.name(), (float) target);
     }
-    private void empty(DrawContext ctx, String message, int y) {
-        glass(ctx, BODY_X, y, BODY_W, 48, 9, 0x06FFFFFF, LINE);
-        centered(ctx, trim(message, BODY_W - 20), BODY_X + BODY_W / 2, y + 19, MUTED, false);
+    private float displayedScroll() {
+        return animations.getOrDefault(editorFactory == null ? "scroll:" + tab.name() : "editor-scroll", 0f);
     }
-    private void button(DrawContext ctx, String label, Action action, int x, int y, int w, int h, Object target, int data, boolean secondary) {
-        boolean hover = inside(mouseX, mouseY, x, y, w, h);
-        int bg = secondary ? hover ? 0x30FFFFFF : 0x18FFFFFF : accent();
-        int fg = action == Action.DELETE || action == Action.RESET || action == Action.FRIEND_REMOVE ? 0xFFFF9AAB : WHITE;
-        glass(ctx, x, y, w, h, 6, bg, 0x28FFFFFF);
-        centered(ctx, trim(label, w - 10), x + w / 2, y + (h - 9) / 2, fg, false);
+    private void empty(DrawContext ctx, String message, float y) {
+        glass(ctx, BODY_X, y, BODY_W, 80, ROW_RADIUS, 0x06FFFFFF, LINE);
+        centeredRow(ctx, ellipsize(message, BODY_W - 40, 1.4f, false), BODY_X + BODY_W / 2f, y, 80, MUTED, false);
+    }
+    private void button(DrawContext ctx, String label, Action action, float x, float y, int w, int h, Object target, int data, boolean secondary) {
+        float hover = motion("button:" + action + ":" + target + ":" + data, hovered(ctx, x, y, w, h) ? 1 : 0);
+        boolean destructive = action == Action.DELETE || action == Action.RESET || action == Action.FRIEND_REMOVE;
+        int bg = destructive ? Render2D.lerpColor(0x2EDADADA, 0x50DADADA, hover)
+            : secondary ? Render2D.lerpColor(0x18FFFFFF, 0x30FFFFFF, hover) : accent();
+        int fg = destructive ? 0xFFD5D5D5 : secondary ? WHITE : accentForeground();
+        glass(ctx, x, y, w, h, CONTROL_RADIUS, bg, 0x28FFFFFF);
+        centeredRow(ctx, ellipsize(label, w - 20, 1.3f, true), x + w / 2f, y, h, fg, true, 1.3f);
         hit(action, x, y, w, h, target, data);
     }
-    private void field(DrawContext ctx, Field field, String placeholder, int x, int y, int w, int h) {
+    private void field(DrawContext ctx, Field field, String placeholder, float x, float y, int w, int h) {
         boolean active = focused == field;
-        glass(ctx, x, y, w, h, 7, 0x10FFFFFF, active ? accent() : 0x00FFFFFF);
-        String value = value(field);
-        String display = value.isEmpty() ? placeholder : value;
-        if (field == Field.IMPORT_JSON && !value.isEmpty()) display = value.length() + " characters of config JSON";
-        display = trim(display, w - 16);
-        text(ctx, display, x + 8, y + (h - 9) / 2, value.isEmpty() ? MUTED : color(), false);
-        if (active && System.nanoTime() / 500000000L % 2 == 0) {
+        glass(ctx, x, y, w, h, CONTROL_RADIUS, 0x10FFFFFF, active ? accent() : LINE);
+        String value = value(field), display = value.isEmpty() ? placeholder : value;
+        display = ellipsize(display, w - 24, 1.3f, false);
+        if (active && selectedAll && !value.isEmpty()) surface(ctx, x + 6, y + 5, w - 12, h - 10, 4, 0x30FFFFFF, 0, 0);
+        if (field == Field.IMPORT_JSON) {
+            ctx.enableScissor((int) x + 10, (int) y + 8, (int) x + w - 10, (int) y + h - 8);
+            String[] lines = (value.isEmpty() ? placeholder : value).split("\\R", 5);
+            for (int i = 0; i < Math.min(3, lines.length); i++)
+                rowText(ctx, ellipsize(lines[i], w - 24, 1.2f, false), x + 12, y + 8 + i * 18, 18,
+                    value.isEmpty() ? MUTED : color(), false, 1.2f);
+            if (!value.isEmpty()) rowText(ctx, value.length() + " characters", x + 12, y + h - 26, 18, MUTED, false, 1.1f);
+            ctx.disableScissor();
+        } else rowText(ctx, display, x + 12, y, h, value.isEmpty() ? MUTED : color(), false, 1.3f);
+        if (field != Field.IMPORT_JSON && active && System.nanoTime() / 500000000L % 2 == 0) {
             String prefix = field == Field.IMPORT_JSON ? display : value.substring(0, Math.min(caret, value.length()));
-            int cw = Math.min(w - 12, textRenderer.getWidth(trim(prefix, w - 16)));
-            ctx.fill(x + 8 + cw, y + 7, x + 9 + cw, y + h - 6, accent());
+            float cw = Math.min(w - 24, labelWidth(prefix, 1.3f, false));
+            surface(ctx, x + 12 + cw, y + (h - 14) / 2f, 1, 14, 0, accent(), 0, 0);
         }
-        if (active && selectedAll && !value.isEmpty()) ctx.fill(x + 6, y + 4, x + w - 6, y + h - 4, 0x30FFFFFF);
         hit(Action.FIELD, x, y, w, h, field, 0);
     }
-    private void icon(DrawContext ctx, String name, int x, int y, int size, int tint) {
-        image(ctx, Identifier.of("bytephase", "ui/" + name + ".png"),
-            x, y, size, size, ICON_TEXTURE_SIZE, ICON_TEXTURE_SIZE, tint);
+    private void icon(DrawContext ctx, String name, float x, float y, int size, int tint) {
+        image(ctx, Identifier.of("bytephase", "ui/" + name + ".png"), x, y, size, size, ICON_TEXTURE_SIZE, ICON_TEXTURE_SIZE, tint);
     }
     private static String categoryIcon(Category category) {
         return switch (category) {
@@ -467,32 +688,94 @@ public final class ClickGuiScreen extends Screen {
             case UI -> "settings";
         };
     }
-    private static void image(DrawContext ctx, Identifier texture, int x, int y,
-            int width, int height, int textureWidth, int textureHeight, int tint) {
-        // Destination size and sampled source region are independent.
-        ctx.drawTexture(RenderPipelines.GUI_TEXTURED, texture, x, y, 0, 0,
-            width, height, textureWidth, textureHeight, textureWidth, textureHeight, tint);
+    private static void image(DrawContext ctx, Identifier texture, float x, float y, int width, int height, int textureWidth, int textureHeight, int tint) {
+        LiquidGui.Rect rect = LiquidGui.rect(ctx, x, y, width, height);
+        var matrices = ctx.getMatrices();
+        matrices.pushMatrix();
+        matrices.identity();
+        matrices.translate(rect.x(), rect.y());
+        matrices.scale(rect.w() / width, rect.h() / height);
+        try {
+            ctx.drawTexture(RenderPipelines.GUI_TEXTURED, texture, 0, 0, 0, 0,
+                width, height, textureWidth, textureHeight, textureWidth, textureHeight, tint);
+        } finally { matrices.popMatrix(); }
     }
-    private static void glass(DrawContext ctx, int x, int y, int w, int h, int r, int bg, int border) {
-        rounded(ctx, x, y, w, h, r, bg);
-        if ((border >>> 24) != 0) Render2D.roundedOutline(ctx, x, y, w, h, r, border);
-        ctx.fill(x + r, y + 1, x + w - r, y + 2, 0x22FFFFFF);
+    private static void surface(DrawContext ctx, float x, float y, float w, float h, float radius, int bg, int border, int flags) {
+        LiquidGui.surface(ctx, x, y, w, h, radius, bg, border, flags);
     }
-    private static void rounded(DrawContext ctx, int x, int y, int w, int h, int r, int color) { Render2D.roundedRect(ctx, x, y, w, h, r, color); }
-    private int accent() { return appearance == null ? 0xFF6C6FF5 : appearance.accent(); }
+    private static void glass(DrawContext ctx, float x, float y, float w, float h, float radius, int bg, int border) {
+        surface(ctx, x, y, w, h, radius, bg, border, LiquidGui.GRADIENT | LiquidGui.HIGHLIGHT);
+    }
+    private int accent() { return appearance == null ? 0xFFC0C0C0 : appearance.accent(); }
+    private int accentForeground() { return appearance == null ? WHITE : appearance.accentForeground(); }
+    private int logoTextColor() {
+        int accent = accent(), background = appearance == null ? Theme.PANEL : appearance.panelColor();
+        int difference = Math.abs((accent >> 16 & 255) - (background >> 16 & 255))
+            + Math.abs((accent >> 8 & 255) - (background >> 8 & 255))
+            + Math.abs((accent & 255) - (background & 255));
+        return difference < 120 ? accentForeground() : accent;
+    }
     private int color() { return appearance == null ? WHITE : appearance.text(); }
-    private String trim(String value, int width) { return textRenderer.trimToWidth(value, Math.max(1, width)); }
-    private void text(DrawContext ctx, String value, int x, int y, int color, boolean bold) {
-        Text text = Text.literal(value).styled(style -> style.withBold(bold && (appearance == null || appearance.boldHeaders())));
-        ctx.drawText(textRenderer, text, x, y, color, appearance != null && appearance.textShadow());
+    private static int withAlpha(int color, float alpha) { return Math.round(MathHelper.clamp(alpha, 0, 1) * 255) << 24 | color & 0xFFFFFF; }
+    private Text label(String value, boolean bold) {
+        String display = dev.bytephase.module.misc.NameProtect.filter(value);
+        if (labels.size() > 4096) labels.clear();
+        boolean weight = bold && (appearance == null || appearance.boldHeaders());
+        return labels.computeIfAbsent((weight ? "1:" : "0:") + display,
+            key -> Text.literal(display).styled(style -> style.withBold(weight)));
     }
-    private void text(DrawContext ctx, String value, int x, int y, int color, boolean bold, float scale) {
-        var matrix = ctx.getMatrices(); matrix.pushMatrix(); matrix.translate(x, y); matrix.scale(scale, scale);
-        text(ctx, value, 0, 0, color, bold); matrix.popMatrix();
+    private float labelWidth(String value, float fontScale, boolean bold) {
+        String display = dev.bytephase.module.misc.NameProtect.filter(value);
+        if (widths.size() > 4096) widths.clear();
+        boolean weight = bold && (appearance == null || appearance.boldHeaders());
+        return widths.computeIfAbsent((weight ? "1:" : "0:") + display,
+            key -> textRenderer.getWidth(label(display, bold))) * fontScale;
     }
-    private void centered(DrawContext ctx, String value, int x, int y, int color, boolean bold) {
-        Text text = Text.literal(value).styled(style -> style.withBold(bold && (appearance == null || appearance.boldHeaders())));
-        ctx.drawText(textRenderer, text, x - textRenderer.getWidth(text) / 2, y, color, false);
+    private String ellipsize(String value, float available, float fontScale, boolean bold) {
+        value = dev.bytephase.module.misc.NameProtect.filter(value);
+        if (value == null || available <= 0) return "";
+        if (labelWidth(value, fontScale, bold) <= available) return value;
+        String dots = "…";
+        float remaining = available - labelWidth(dots, fontScale, bold);
+        if (remaining <= 0) return "";
+        String clipped = textRenderer.getTextHandler().trimToWidth(value, (int) (remaining / fontScale),
+            ClientFonts.measuredStyle(bold && (appearance == null || appearance.boldHeaders())));
+        while (!clipped.isEmpty() && labelWidth(clipped + dots, fontScale, bold) > available)
+            clipped = clipped.substring(0, clipped.offsetByCodePoints(clipped.length(), -1));
+        return clipped + dots;
+    }
+    private void rowText(DrawContext ctx, String value, float x, float rowY, float rowHeight, int color, boolean bold) {
+        rowText(ctx, value, x, rowY, rowHeight, color, bold, 1.4f);
+    }
+    private void rowText(DrawContext ctx, String value, float x, float rowY, float rowHeight, int color, boolean bold, float textScale) {
+        boolean semibold = bold && (appearance == null || appearance.boldHeaders());
+        float textY = rowY + rowHeight / 2f - ClientFonts.capCenterOffset(semibold) * textScale;
+        var point = LiquidGui.textOrigin(ctx, x, textY);
+        var matrices = ctx.getMatrices();
+        matrices.pushMatrix();
+        matrices.translate(point.x, point.y);
+        matrices.scale(textScale, textScale);
+        try { ctx.drawText(textRenderer, label(value, bold), 0, 0, color, appearance != null && appearance.textShadow()); }
+        finally { matrices.popMatrix(); }
+    }
+    private void centeredRow(DrawContext ctx, String value, float centerX, float rowY, float rowHeight, int color, boolean bold) {
+        centeredRow(ctx, value, centerX, rowY, rowHeight, color, bold, 1.4f);
+    }
+    private void centeredRow(DrawContext ctx, String value, float centerX, float rowY, float rowHeight, int color, boolean bold, float textScale) {
+        rowText(ctx, value, centerX - labelWidth(value, textScale, bold) / 2f, rowY, rowHeight, color, bold, textScale);
+    }
+    private float motion(String key, float target) {
+        float previous = animations.getOrDefault(key, target);
+        float value = previous + (target - previous) * animationStep;
+        if (Math.abs(value - target) < 0.01f) value = target;
+        animations.put(key, value);
+        return value;
+    }
+    private boolean hovered(DrawContext ctx, float x, float y, float w, float h) {
+        LiquidGui.Rect rect = LiquidGui.rect(ctx, x, y, w, h);
+        var clip = ctx.scissorStack.peekLast();
+        float sx = originX + (float) mouseX * scale, sy = originY + (float) mouseY * scale;
+        return rect.contains(sx, sy) && (clip == null || clip.contains((int) sx, (int) sy));
     }
     private static String formatNumber(double number) {
         if (number == Math.rint(number)) return Long.toString((long) number);
@@ -503,8 +786,14 @@ public final class ClickGuiScreen extends Screen {
         if (key >= 1000) return "Mouse " + (key - 999);
         return net.minecraft.client.util.InputUtil.fromKeyCode(new KeyInput(key, 0, 0)).getLocalizedText().getString();
     }
-    private void hit(Action action, int x, int y, int w, int h, Object target, int data) {
-        hits.add(new Hit(action, x, y, w, h, target, data));
+    private void hit(Action action, float x, float y, float w, float h, Object target, int data) {
+        LiquidGui.Rect rect = LiquidGui.rect(drawingContext, x, y, w, h);
+        var scissor = drawingContext.scissorStack.peekLast();
+        LiquidGui.Rect clip = scissor == null ? null : new LiquidGui.Rect(
+            (scissor.getLeft() - originX) / scale, (scissor.getTop() - originY) / scale,
+            scissor.width() / scale, scissor.height() / scale);
+        hits.add(new Hit(action, (rect.x() - originX) / scale, (rect.y() - originY) / scale,
+            rect.w() / scale, rect.h() / scale, target, data, clip));
     }
     private static boolean inside(double mx, double my, int x, int y, int w, int h) { return mx >= x && mx < x + w && my >= y && my < y + h; }
 
@@ -516,16 +805,16 @@ public final class ClickGuiScreen extends Screen {
         for (int i = hits.size() - 1; i >= 0; i--) {
             Hit hit = hits.get(i);
             if (!hit.contains(mx, my)) continue;
-            boolean headerHit = hit.action == Action.TAB || hit.action == Action.FIELD && hit.target == Field.SEARCH;
-            if (dialog == null && !headerHit && (my < BODY_Y || my >= BODY_BOTTOM)) continue;
-            if (dialog != null && isSetting(hit.action) && (my < dialogY + 102 || my >= dialogY + dialogH - 47)) continue;
             if (hit.action != Action.FIELD) focused = null;
             switch (hit.action) {
                 case TAB -> { if (button == 0) selectTab((Tab) hit.target); }
                 case FIELD -> { if (button == 0) focus((Field) hit.target); }
                 case MODULE -> {
                     if (button == 0) ((Module) hit.target).toggle();
-                    if (button == 1) { dialog = (Module) hit.target; dialogScroll = 0; dragging = null; }
+                    if (button == 1) {
+                        dev.bytephase.engine.categories.settings.ClientSounds.updateCardOpen();
+                        dialog = (Module) hit.target; dialogScroll = 0; dragging = null;
+                    }
                     keyboardCard = hit.data;
                 }
                 case CLOSE_DIALOG -> closeDialog();
@@ -533,34 +822,81 @@ public final class ClickGuiScreen extends Screen {
                 case BIND -> { if (button == 0) binding = dialog; else if (button == 1) { Keybinds.set(dialog, GLFW.GLFW_KEY_UNKNOWN); persist(); } }
                 case ACTION_KEY -> { if (button == 0) actionBinding = (ActionKeySetting) hit.target; else if (button == 1) ((ActionKeySetting) hit.target).setValue(-1); }
                 case BOOL -> { if (button == 0) ((BooleanSetting) hit.target).toggle(); }
+                case TEXT_SETTING -> {
+                    if (button == 0) {
+                        var text = (dev.bytephase.setting.StringSetting)hit.target;
+                        if (appearance != null && text == appearance.imagePathSetting())
+                            client.setScreen(new TextSettingScreen(this, text, appearance::setBackgroundImage));
+                        else client.setScreen(new TextSettingScreen(this, text));
+                    }
+                }
+                case RUN_ACTION -> {
+                    if (button == 0) {
+                        try {
+                            ((dev.bytephase.setting.ActionSetting) hit.target).run();
+                            if (editorFactory != null && client.currentScreen == this)
+                                editorSettings = List.copyOf(editorFactory.get());
+                        } catch (RuntimeException error) {
+                            BytePhase.LOGGER.warn("Native editor action failed", error);
+                            toast("Could not apply that action. Check the selected values.");
+                        }
+                    }
+                }
+                case EDITOR_BACK -> backFromEditor();
+                case PREVIEW -> { if (button == 0 || button == 1) dragging = hit; }
                 case MODE -> {
                     if (button == 0 || button == 1) { ModeSetting mode = (ModeSetting) hit.target; String[] modes = mode.getModes();
                         mode.setValue(modes[Math.floorMod(mode.getIndex() + (button == 1 ? -1 : 1), modes.length)]); }
                 }
-                case NUMBER, COLOR -> { if (button == 0) { dragging = hit; setSlider(hit, mx); } }
+                case NUMBER -> { if (button == 0) { dragging = hit; setSlider(hit, mx); } }
+                case COLOR -> { if (button == 0) client.setScreen(new ColorPickerScreen(this, (ColorSetting)hit.target)); }
                 case RESET -> { if (button == 0) resetModule(); }
-                case THEME -> { if (button == 0 && appearance != null) { appearance.setAccent(THEME_COLORS[hit.data]); toast(THEME_NAMES[hit.data] + " theme"); } }
                 default -> { if (button == 0) perform(hit); }
             }
-            if (isSetting(hit.action) || hit.action == Action.THEME) {
+            if (isSetting(hit.action)) {
                 persist();
+                if (editorFactory != null && client.currentScreen == this
+                        && hit.action != Action.NUMBER && hit.action != Action.COLOR)
+                    editorSettings = List.copyOf(editorFactory.get());
                 hits.clear();
             }
             return true;
         }
         focused = null;
-        if (dialog != null && !inside(mx, my, dialogX, dialogY, 310, dialogH)) closeDialog();
+        if (dialog != null && !inside(mx, my, dialogX, dialogY, DIALOG_W, dialogH)) closeDialog();
         return true;
     }
-    private static boolean isSetting(Action action) { return action == Action.BOOL || action == Action.NUMBER || action == Action.MODE || action == Action.COLOR || action == Action.ACTION_KEY; }
+    private static boolean isSetting(Action action) { return action == Action.BOOL || action == Action.NUMBER || action == Action.MODE || action == Action.COLOR || action == Action.ACTION_KEY || action == Action.TEXT_SETTING || action == Action.RUN_ACTION; }
     private void selectTab(Tab value) {
+        closePreviews();
+        editorFactory = null; editorSettings = List.of(); editorTitle = null; editorParent = null; editorScroll = 0; editorOwner = null;
+        dev.bytephase.engine.categories.settings.ClientSounds.updateCategoryClick();
         tab = value; savedTab = value; focused = null; keyboardCard = -1; fields.put(Field.SEARCH, "");
         dragging = null; confirmDelete = ""; confirmOverwrite = ""; hits.clear();
         if (tab == Tab.CONFIGS) readProfiles();
         if (tab == Tab.FRIENDS) friends = CombatIntegration.friends();
         persist();
     }
-    private void closeDialog() { dialog = null; binding = null; actionBinding = null; dragging = null; hits.clear(); }
+    private void closeDialog() { dialog = null; animatedDialog = null; binding = null; actionBinding = null; dragging = null; hits.clear(); }
+    private void backFromEditor() {
+        closePreviews();
+        if (editorParent != null) client.setScreen(editorParent);
+        else client.setScreen(new ClickGuiScreen());
+    }
+    private void closePreviews() {
+        previewFrames.clear();
+        failedPreviews.clear();
+        for (Setting<?> setting : editorSettings)
+            if (setting instanceof dev.bytephase.setting.PreviewSetting preview) try {
+                preview.scene.nativeClose();
+            } catch (RuntimeException | LinkageError error) {
+                BytePhase.LOGGER.warn("Could not release native preview resources", error);
+            }
+    }
+    @Override public void close() {
+        if (editorFactory != null) backFromEditor();
+        else super.close();
+    }
     private void resetModule() {
         dialog.setEnabled(false);
         for (Setting<?> setting : dialog.getSettings()) setting.reset();
@@ -576,17 +912,39 @@ public final class ClickGuiScreen extends Screen {
         } else if (hit.target instanceof ColorSetting color) color.setChannel(hit.data, (int) Math.round(fraction * 255));
     }
     @Override public boolean mouseDragged(Click click, double dx, double dy) {
-        if (dragging != null) { setSlider(dragging, (click.x() - originX) / scale); return true; }
+        if (dragging != null) {
+            if (dragging.target instanceof dev.bytephase.setting.PreviewSetting preview)
+                { preview.scene.nativeDrag(dx / scale, dy / scale, click.buttonInfo().button()); previewFrames.remove(preview.scene); }
+            else setSlider(dragging, (click.x() - originX) / scale);
+            return true;
+        }
         return true;
     }
-    @Override public boolean mouseReleased(Click click) { if (dragging != null) persist(); dragging = null; return true; }
+    @Override public boolean mouseReleased(Click click) {
+        if (dragging != null) {
+            if (dragging.target instanceof dev.bytephase.setting.PreviewSetting preview) preview.scene.nativeDrag(0, 0, -1);
+            else persist();
+        }
+        dragging = null;
+        if (editorFactory != null) editorSettings = List.copyOf(editorFactory.get());
+        return true;
+    }
     @Override public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
         double x = (mx - originX) / scale, y = (my - originY) / scale;
+        for (Hit hit : hits) if (hit.action == Action.PREVIEW && hit.contains(x, y)) {
+            var preview = (dev.bytephase.setting.PreviewSetting) hit.target;
+            preview.scene.nativeZoom(vertical);
+            previewFrames.remove(preview.scene);
+            return true;
+        }
         dragging = null;
         if (dialog != null) {
-            if (inside(x, y, dialogX, dialogY, 310, dialogH)) dialogScroll = Math.max(0, dialogScroll - vertical * 27);
+            if (inside(x, y, dialogX, dialogY, DIALOG_W, dialogH)) dialogScroll = Math.max(0, dialogScroll - vertical * 42);
+        } else if (inside(x, y, 20, 132, SIDE - 40, H - 227)) {
+            navScroll = Math.max(0, navScroll - vertical * 44);
         } else if (inside(x, y, BODY_X, BODY_Y, BODY_W, BODY_BOTTOM - BODY_Y)) {
-            scrolls.put(tab, Math.max(0, scrolls.getOrDefault(tab, 0.0) - vertical * 29));
+            if (editorFactory != null) editorScroll = Math.max(0, editorScroll - vertical * 48);
+            else scrolls.put(tab, Math.max(0, scrolls.getOrDefault(tab, 0.0) - vertical * 48));
         }
         hits.clear(); return true;
     }
@@ -649,7 +1007,7 @@ public final class ClickGuiScreen extends Screen {
         afterEdit();
     }
     private void afterEdit() {
-        if (focused == Field.SEARCH) { scrolls.put(tab, 0.0); keyboardCard = -1; }
+        if (focused == Field.SEARCH) { scrolls.put(tab, 0.0); editorScroll = 0; keyboardCard = -1; }
         confirmDelete = ""; confirmOverwrite = ""; hits.clear();
     }
 
@@ -659,7 +1017,8 @@ public final class ClickGuiScreen extends Screen {
         if (binding != null) { Keybinds.set(binding, key == GLFW.GLFW_KEY_ESCAPE || key == GLFW.GLFW_KEY_BACKSPACE || key == GLFW.GLFW_KEY_DELETE ? GLFW.GLFW_KEY_UNKNOWN : key); binding = null; persist(); return true; }
         if (Keybinds.matchesClickGui(input)) { Keybinds.suppressNextClickGui(); close(); return true; }
         if (key == GLFW.GLFW_KEY_ESCAPE) {
-            if (dialog != null) closeDialog(); else if (focused != null) focused = null; else close();
+            if (dialog != null) closeDialog(); else if (focused != null) focused = null;
+            else if (editorFactory != null) backFromEditor(); else close();
             return true;
         }
         boolean control = (input.modifiers() & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_SUPER)) != 0;
@@ -695,11 +1054,11 @@ public final class ClickGuiScreen extends Screen {
             }
             return true;
         }
-        if (dialog == null && (tab.category != null || !value(Field.SEARCH).isEmpty())) {
+        if (editorFactory == null && dialog == null && (tab.category != null || !value(Field.SEARCH).isEmpty())) {
             List<Module> list = visibleModules();
             if (!list.isEmpty()) {
                 int step = key == GLFW.GLFW_KEY_DOWN ? 2 : key == GLFW.GLFW_KEY_UP ? -2 : key == GLFW.GLFW_KEY_RIGHT ? 1 : key == GLFW.GLFW_KEY_LEFT ? -1 : 0;
-                if (step != 0) { keyboardCard = MathHelper.clamp(keyboardCard < 0 ? 0 : keyboardCard + step, 0, list.size() - 1); scrolls.put(tab, Math.max(0, keyboardCard / 2 * 44.0 - 88)); return true; }
+                if (step != 0) { keyboardCard = MathHelper.clamp(keyboardCard < 0 ? 0 : keyboardCard + step, 0, list.size() - 1); scrolls.put(tab, Math.max(0, keyboardCard / 2 * 60.0 - 120)); return true; }
                 if ((key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_SPACE) && keyboardCard >= 0 && keyboardCard < list.size()) {
                     if ((input.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0) { dialog = list.get(keyboardCard); dialogScroll = 0; }
                     else list.get(keyboardCard).toggle();
@@ -713,9 +1072,10 @@ public final class ClickGuiScreen extends Screen {
     @Override public boolean charTyped(CharInput input) { if (focused != null && input.isValidChar()) edit(input.asString()); return true; }
     @Override public boolean shouldPause() { return false; }
     @Override public void renderBackground(DrawContext ctx, int mx, int my, float delta) {
-        if (appearance == null || appearance.backgroundBlur()) applyBlur(ctx);
+        // The cached scene is blurred only inside the panel's rounded mask.
     }
     @Override public void removed() {
+        closePreviews();
         savedTab = tab; SAVED_SCROLL.clear(); SAVED_SCROLL.putAll(scrolls);
         if (BytePhase.config != null) BytePhase.config.save();
         super.removed();

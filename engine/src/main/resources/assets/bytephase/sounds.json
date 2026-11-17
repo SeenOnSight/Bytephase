@@ -1,0 +1,102 @@
+{
+  "pingsound": {
+    "sounds": [
+      "bytephase:pingsound"
+    ]
+  },
+  "introsound": {
+    "sounds": [
+      "bytephase:introsound"
+    ]
+  },
+  "access_granted": {
+    "sounds": [
+      "bytephase:access_granted"
+    ]
+  },
+  "buildfinished": {
+    "sounds": [
+      "bytephase:buildfinished"
+    ]
+  },
+  "cs_default_on":  { "sounds": ["bytephase:modules/module_on"] },
+  "cs_default_off": { "sounds": ["bytephase:modules/module_off"] },
+  "cs_pack1_on":    { "sounds": ["bytephase:modules/module_enable"] },
+  "cs_pack1_off":   { "sounds": ["bytephase:modules/module_disable"] },
+  "cs_pack2_on":    { "sounds": ["bytephase:modules/module_enable1"] },
+  "cs_pack2_off":   { "sounds": ["bytephase:modules/module_disable1"] },
+  "cs_pack3_on":    { "sounds": ["bytephase:modules/module_enable2"] },
+  "cs_pack3_off":   { "sounds": ["bytephase:modules/module_disable2"] },
+  "cs_th_on":       { "sounds": ["bytephase:modules/enable"] },
+  "cs_th_off":      { "sounds": ["bytephase:modules/disable"] },
+  "cs_pack4_on":    { "sounds": ["bytephase:modules/module_on1"] },
+  "cs_pack4_off":   { "sounds": ["bytephase:modules/module_off1"] },
+  "cs_hover_scroll": { "sounds": ["bytephase:modules/scroll"] },
+  "cs_category_click": { "sounds": ["bytephase:modules/category_click"] },
+  "cs_card_open": { "sounds": ["bytephase:modules/card_open"] },
+  "knife.deploy": { "sounds": [
+    { "name": "bytephase:knife/deploy1", "preload": true },
+    { "name": "bytephase:knife/deploy2", "preload": true },
+    { "name": "bytephase:knife/deploy3", "preload": true }
+  ] },
+  "knife.deploy_butterfly": { "sounds": [
+    { "name": "bytephase:knife/deploy_butterfly1", "preload": true },
+    { "name": "bytephase:knife/deploy_butterfly2", "preload": true },
+    { "name": "bytephase:knife/deploy_butterfly3", "preload": true }
+  ] },
+  "knife.swish": { "sounds": [
+    { "name": "bytephase:knife/swish1", "preload": true },
+    { "name": "bytephase:knife/swish2", "preload": true },
+    { "name": "bytephase:knife/swish3", "preload": true },
+    { "name": "bytephase:knife/swish4", "preload": true },
+    { "name": "bytephase:knife/swish5", "preload": true }
+  ] },
+  "knife.keys": { "sounds": [
+    { "name": "bytephase:knife/keys1", "preload": true },
+    { "name": "bytephase:knife/keys2", "preload": true },
+    { "name": "bytephase:knife/keys3", "preload": true },
+    { "name": "bytephase:knife/keys4", "preload": true },
+    { "name": "bytephase:knife/keys5", "preload": true },
+    { "name": "bytephase:knife/keys6", "preload": true },
+    { "name": "bytephase:knife/keys7", "preload": true },
+    { "name": "bytephase:knife/keys8", "preload": true },
+    { "name": "bytephase:knife/keys9", "preload": true },
+    { "name": "bytephase:knife/keys10", "preload": true },
+    { "name": "bytephase:knife/keys11", "preload": true },
+    { "name": "bytephase:knife/keys12", "preload": true }
+  ] },
+  "knife.tick": { "sounds": [
+    { "name": "bytephase:knife/tick1", "preload": true },
+    { "name": "bytephase:knife/tick2", "preload": true },
+    { "name": "bytephase:knife/tick3", "preload": true },
+    { "name": "bytephase:knife/tick4", "preload": true },
+    { "name": "bytephase:knife/tick5", "preload": true },
+    { "name": "bytephase:knife/tick6", "preload": true }
+  ] },
+  "knife.lock": { "sounds": [
+    { "name": "bytephase:knife/lock1", "preload": true },
+    { "name": "bytephase:knife/lock2", "preload": true },
+    { "name": "bytephase:knife/lock3", "preload": true },
+    { "name": "bytephase:knife/lock4", "preload": true }
+  ] },
+  "knife.keys_land": { "sounds": [
+    { "name": "bytephase:knife/keys_land1", "preload": true },
+    { "name": "bytephase:knife/keys_land2", "preload": true },
+    { "name": "bytephase:knife/keys_land3", "preload": true },
+    { "name": "bytephase:knife/keys_land4", "preload": true },
+    { "name": "bytephase:knife/keys_land5", "preload": true },
+    { "name": "bytephase:knife/keys_land6", "preload": true },
+    { "name": "bytephase:knife/keys_land7", "preload": true },
+    { "name": "bytephase:knife/keys_land8", "preload": true }
+  ] },
+  "knife.ring": { "sounds": [
+    { "name": "bytephase:knife/ring1", "preload": true },
+    { "name": "bytephase:knife/ring2", "preload": true },
+    { "name": "bytephase:knife/ring3", "preload": true },
+    { "name": "bytephase:knife/ring4", "preload": true },
+    { "name": "bytephase:knife/ring5", "preload": true },
+    { "name": "bytephase:knife/ring6", "preload": true }
+  ] },
+  "theme.halloween": { "sounds": [ { "name": "bytephase:theme/halloween", "stream": true } ] },
+  "theme.christmas": { "sounds": [ { "name": "bytephase:theme/christmas", "stream": true } ] }
+}

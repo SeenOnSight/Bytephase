@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 @Environment(EnvType.CLIENT)
 final class RivalBook {
-    private static final Logger LOGGER = LoggerFactory.getLogger("pvp");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Bytephase");
     private static final Gson GSON = new Gson();
     private static final int VERSION = 1;
     private static final int MAX_FILES = 64;
@@ -92,7 +92,7 @@ final class RivalBook {
                 }
             }
         } catch (IOException | JsonSyntaxException e) {
-            LOGGER.warn("[pvp] Could not read a crystal bot rival entry, starting it over", e);
+            LOGGER.warn("[Bytephase] Could not read a crystal bot rival entry, starting it over", e);
         }
 
         RivalBook.Rival rival = new RivalBook.Rival();
@@ -115,7 +115,7 @@ final class RivalBook {
                 Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException | IllegalArgumentException e) {
-            LOGGER.warn("[pvp] Could not save a crystal bot rival entry", e);
+            LOGGER.warn("[Bytephase] Could not save a crystal bot rival entry", e);
         }
     }
 

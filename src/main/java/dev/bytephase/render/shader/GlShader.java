@@ -10,17 +10,17 @@ import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL20;
 
 /**
- * Minimal raw-GL program wrapper for the supplied Clarity shader assets.
+ * Minimal raw-GL program wrapper for the supplied Bytephase shader assets.
  *
  * <p>The shader files themselves are shipped unchanged from the approved
  * visual source. This class only compiles and links them for the 1.21.11
- * renderer, where Clarity's original 26.1 bridge classes are unavailable.</p>
+ * renderer, where Bytephase's original 26.1 bridge classes are unavailable.</p>
  */
 public final class GlShader {
     // These are raw OpenGL shaders loaded directly from the mod classpath.
     // Keep them outside assets/<namespace>/shaders/, which Minecraft scans
     // and reloads as managed core shader sources.
-    private static final String ROOT = "/assets/bytephase/clarity_shaders/";
+    private static final String ROOT = "/assets/bytephase/bytephase_shaders/";
 
     private final int programId;
     private final String label;

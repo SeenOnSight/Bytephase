@@ -30,6 +30,7 @@ public final class AimAssistModule extends ClientModule {
     private static final long LAST_HIT_MS = 1500L;
     private static final double STICK_RANGE = 0.5;
     private static final double STICK_FOV = 1.3;
+    private static final long MOUSE_IDLE_MS = 150L;
     private static final double[] STILL = new double[]{0.0, 0.0};
     private static final long MINING_QUIET_MS = 250L;
     private final NumberSetting range = this.addSetting("range", new NumberSetting("Range", 4.0F, 3.0F, 6.0F).step(0.1F));
@@ -41,10 +42,13 @@ public final class AimAssistModule extends ClientModule {
     private double pace;
     private double pendingYaw;
     private double pendingPitch;
+    private long movedAt;
+    private double userYawSign;
+    private double userPitchSign;
     private long minedAt;
 
     public AimAssistModule() {
-        super("aim-assist", "Aim Assist", "Eases your crosshair onto the nearest enemy player, even while the mouse is still.", ModuleCategory.COMBAT);
+        super("aim-assist", "Aim Assist", "Eases your crosshair onto the nearest enemy player while you move the mouse.", ModuleCategory.COMBAT);
     }
 
     @Override
@@ -72,7 +76,13 @@ public final class AimAssistModule extends ClientModule {
             this.minedAt = Util.getMillis();
         }
 
-        if (this.canFollow(mc, player)) {
+        if (MeleeAttacks.canAct(mc)
+            && !player.isUsingItem()
+            && !mc.options.keyUse.isDown()
+            && (!this.weaponsOnly.get() || MeleeAttacks.isMeleeWeapon(player.getMainHandItem()))
+            && !ServerRotation.pending()
+            && !CombatMacroLock.heldByOther(this)
+            && Util.getMillis() - this.minedAt >= 250L) {
             this.follow(this.choose(mc, player));
         } else {
             this.follow(null);
@@ -80,28 +90,37 @@ public final class AimAssistModule extends ClientModule {
     }
 
     public double[] nudge(LocalPlayer player, double userYaw, double userPitch, double seconds) {
-        Minecraft mc = Minecraft.getInstance();
-        Rotation want = this.target != null && this.canFollow(mc, player)
-            && this.target.level() == mc.level && MeleeAttacks.isEnemy(player, this.target)
-            ? this.aim(player, player.getEyePosition(), core(this.target)) : null;
+        long now = Util.getMillis();
+        if (userYaw != 0.0 || userPitch != 0.0) {
+            this.movedAt = now;
+        }
+
+        if (userYaw != 0.0) {
+            this.userYawSign = Math.signum(userYaw);
+        }
+
+        if (userPitch != 0.0) {
+            this.userPitchSign = Math.signum(userPitch);
+        }
+
+        Rotation want = this.target != null && now - this.movedAt <= 150L ? this.aim(player, player.getEyePosition(), core(this.target)) : null;
         if (want == null) {
             this.pendingYaw = 0.0;
             this.pendingPitch = 0.0;
+            this.userYawSign = 0.0;
+            this.userPitchSign = 0.0;
             return STILL;
         }
 
-        if (!Double.isFinite(seconds) || seconds <= 0.0) return STILL;
         double dt = Math.min(seconds, 0.05);
         float yawError = Mth.wrapDegrees(want.yaw() - player.getYRot());
         float pitchError = this.vertical.get() ? want.pitch() - player.getXRot() : 0.0F;
-        if (userYaw * yawError < 0.0) {
+        if (this.userYawSign * yawError < 0.0) {
             yawError = 0.0F;
-            this.pendingYaw = 0.0;
         }
 
-        if (userPitch * pitchError < 0.0) {
+        if (this.userPitchSign * pitchError < 0.0) {
             pitchError = 0.0F;
-            this.pendingPitch = 0.0;
         }
 
         double cap = this.speed.get() * this.pace * dt;
@@ -115,17 +134,6 @@ public final class AimAssistModule extends ClientModule {
         this.pendingYaw -= yawCounts;
         this.pendingPitch -= pitchCounts;
         return new double[]{yawCounts * k, pitchCounts * k};
-    }
-
-    private boolean canFollow(Minecraft mc, LocalPlayer player) {
-        return MeleeAttacks.canAct(mc) && player == mc.player
-            && mc.isWindowActive() && mc.mouseHandler.isMouseGrabbed() && !mc.isPaused()
-            && !player.isDeadOrDying() && !player.isSpectator()
-            && !player.isUsingItem() && !mc.options.keyUse.isDown()
-            && !mc.gameMode.isDestroying()
-            && (!this.weaponsOnly.get() || MeleeAttacks.isMeleeWeapon(player.getMainHandItem()))
-            && !ServerRotation.pending() && !CombatMacroLock.heldByOther(this)
-            && Util.getMillis() - this.minedAt >= MINING_QUIET_MS;
     }
 
     private void follow(Player next) {

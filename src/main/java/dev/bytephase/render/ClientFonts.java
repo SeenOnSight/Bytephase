@@ -13,10 +13,11 @@ import net.minecraft.util.Identifier;
 /** Font changes are scoped to Bytephase drawing and measurement on the client thread. */
 public final class ClientFonts {
     public static final String[] OPTIONS = {"Inter", "Outfit", "JetBrains Mono", "Minecraft"};
-    private record Family(StyleSpriteSource.Font regular, StyleSpriteSource.Font semibold) { }
-    private static final Family INTER = family("inter");
-    private static final Family OUTFIT = family("outfit");
-    private static final Family MONO = family("jetbrains_mono");
+    private record Family(StyleSpriteSource.Font regular, StyleSpriteSource.Font semibold,
+                          float regularCapHeight, float semiboldCapHeight) { }
+    private static final Family INTER = family("inter", 7.2753906f, 7.2753906f);
+    private static final Family OUTFIT = family("outfit", 7.0f, 7.03f);
+    private static final Family MONO = family("jetbrains_mono", 7.3f, 7.3f);
     private static Family current;
 
     private ClientFonts() { }
@@ -25,8 +26,8 @@ public final class ClientFonts {
         return new StyleSpriteSource.Font(Identifier.of("bytephase", name));
     }
 
-    private static Family family(String name) {
-        return new Family(font(name), font(name + "_semibold"));
+    private static Family family(String name, float regularCapHeight, float semiboldCapHeight) {
+        return new Family(font(name), font(name + "_semibold"), regularCapHeight, semiboldCapHeight);
     }
 
     public static boolean bundledFont(Identifier file) {
@@ -71,7 +72,19 @@ public final class ClientFonts {
     }
 
     public static boolean active() { return current != null; }
+    /** Visual center relative to Minecraft's y+7 baseline, for stable UI rows. */
+    public static float capCenterOffset(boolean semibold) {
+        // OS/2 cap heights at the bundled providers' size 10. Padding in the
+        // distance-field atlas is transparent and must not affect placement.
+        float capHeight = current == null ? 7.0f
+            : semibold ? current.semiboldCapHeight() : current.regularCapHeight();
+        return 7.0f - capHeight / 2.0f;
+    }
     public static Style style() { return active() ? Style.EMPTY.withFont(current.regular()) : Style.EMPTY; }
+    public static Style measuredStyle(boolean bold) {
+        Style style = Style.EMPTY.withBold(bold);
+        return active() ? resolve(style, current) : style;
+    }
     public static Text text(String value) { return Text.literal(value).setStyle(style()); }
     public static Text text(Text value) {
         return active() && value != null ? value.copy().setStyle(value.getStyle().withFont(current.regular())) : value;

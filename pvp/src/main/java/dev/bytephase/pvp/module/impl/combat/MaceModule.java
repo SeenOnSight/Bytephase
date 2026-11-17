@@ -54,9 +54,6 @@ public final class MaceModule extends ClientModule {
     private final BooleanSetting mobs = this.addSetting("mobs", new BooleanSetting("Mobs", false));
     private final SlotReturn slots = new SlotReturn(this);
     private boolean smashed;
-    private LocalPlayer trackedPlayer;
-    private int delayedTargetId = -1;
-    private int delayedTick = -1;
 
     public MaceModule() {
         super("mace", "Mace", "Swaps to the strongest mace for smash hits, with an optional smash assist.", ModuleCategory.COMBAT);
@@ -71,8 +68,6 @@ public final class MaceModule extends ClientModule {
     @Override
     protected void onDisable() {
         this.smashed = false;
-        this.trackedPlayer = null;
-        this.clearDelay();
         this.slots.drop(Minecraft.getInstance(), this.swapBack.get());
     }
 
@@ -119,8 +114,7 @@ public final class MaceModule extends ClientModule {
     private static float expected(LocalPlayer player, ItemStack stack, LivingEntity target) {
         float charge = MeleeAttacks.charge(player);
         double fall = player.fallDistance;
-        float damage = (float)(player.getAttributeBaseValue(Attributes.ATTACK_DAMAGE) + MeleeAttacks.attackDamage(stack))
-            * (0.2F + 0.8F * charge * charge);
+        float damage = (float)(1.0 + MeleeAttacks.attackDamage(player.getMainHandItem())) * (0.2F + 0.8F * charge * charge);
         if (stack.is(Items.MACE) && MaceItem.canSmashAttack(player)) {
             damage += (float)(smashBonus(fall) + 0.5 * level(stack, Enchantments.DENSITY) * fall);
         }
@@ -165,15 +159,9 @@ public final class MaceModule extends ClientModule {
     @EventHandler(priority = EventPriority.HIGH)
     public void onTick(TickEvent event) {
         Minecraft mc = Minecraft.getInstance();
-        LocalPlayer player = mc.player;
-        // Wind Burst starts another fall without landing. Also rearm when a
-        // confirmed smash resets fall distance or the local player changes.
-        if (player == null || player != this.trackedPlayer || player.onGround()
-                || player.getDeltaMovement().y > 0.0 || !MaceItem.canSmashAttack(player)) {
+        if (mc.player != null && mc.player.onGround()) {
             this.smashed = false;
-            this.clearDelay();
         }
-        this.trackedPlayer = player;
 
         this.slots.tick(mc, this.swapBack.get());
     }
@@ -231,7 +219,6 @@ public final class MaceModule extends ClientModule {
 
     public void noteSmash() {
         this.smashed = true;
-        this.clearDelay();
     }
 
     public boolean smashReady(LocalPlayer player, LivingEntity target) {
@@ -243,23 +230,8 @@ public final class MaceModule extends ClientModule {
     }
 
     public boolean holdsSmash(LocalPlayer player, LivingEntity target) {
-        if (this.delayedTargetId == target.getId() && player.tickCount > this.delayedTick) {
-            return false;
-        }
         boolean chargeSoon = MeleeAttacks.charge(player) <= 0.9F && player.getAttackStrengthScale(1.5F) > 0.9F;
-        if (canHoldOneTick(player, target) && (this.smashTiming.is("Delayed") || chargeSoon || target.hurtTime > 0 || player.isSprinting())) {
-            // Delayed means one tick. Re-evaluating the same delay every tick
-            // could postpone the smash until the player had already landed.
-            this.delayedTargetId = target.getId();
-            this.delayedTick = player.tickCount;
-            return true;
-        }
-        return false;
-    }
-
-    private void clearDelay() {
-        this.delayedTargetId = -1;
-        this.delayedTick = -1;
+        return canHoldOneTick(player, target) && (this.smashTiming.is("Delayed") || chargeSoon || target.hurtTime > 0 || player.isSprinting());
     }
 
     private static boolean canHoldOneTick(LocalPlayer player, LivingEntity target) {

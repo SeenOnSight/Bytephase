@@ -1,6 +1,8 @@
 package dev.bytephase.config;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
@@ -59,7 +61,7 @@ public final class ProfileManager {
     private static final int VERSION = 1;
     private static final int MAX_PROFILES = 128;
     private static final int MAX_BYTES = 1024 * 1024;
-    private static final int MAX_DEPTH = 8;
+    private static final int MAX_DEPTH = 32;
     private static final int MAX_VALUES = 32768;
     private static final int MAX_DIRECTORY_ENTRIES = 4096;
     private static final int MAX_TEMP_ATTEMPTS = 8;
@@ -468,7 +470,7 @@ public final class ProfileManager {
         try {
             for (Module module : plan.keySet()) setEnabled(module, false);
             for (Module module : plan.keySet()) checkEnabled(module, false);
-            for (var entry : plan.entrySet()) restoreSettings(entry.getValue().settings());
+            for (var entry : plan.entrySet()) restoreSettings(entry.getKey(), entry.getValue().settings());
             for (var entry : plan.entrySet()) setEnabled(entry.getKey(), entry.getValue().enabled());
             // Later hooks may have changed an earlier module or an omitted setting.
             verify(previous, plan);
@@ -530,10 +532,21 @@ public final class ProfileManager {
                 reader.endObject();
                 yield object;
             }
+            case BEGIN_ARRAY -> {
+                reader.beginArray();
+                JsonArray array = new JsonArray();
+                while (reader.hasNext()) array.add(readValue(reader, depth + 1, remaining));
+                reader.endArray();
+                yield array;
+            }
+            case NULL -> {
+                reader.nextNull();
+                yield JsonNull.INSTANCE;
+            }
             case BOOLEAN -> new JsonPrimitive(reader.nextBoolean());
             case STRING -> {
                 String value = reader.nextString();
-                if (value.length() > 4096) throw invalid();
+                if (value.length() > MAX_BYTES) throw invalid();
                 yield new JsonPrimitive(value);
             }
             case NUMBER -> {
@@ -542,18 +555,19 @@ public final class ProfileManager {
                 // The strict reader already validated syntax; preserve the lexeme for the version check.
                 yield JsonParser.parseString(number);
             }
-            // Profiles have no arrays, nulls, comments or additional documents.
+            // Strict JSON still excludes comments and additional documents.
             default -> throw invalid();
         };
     }
 
     private static Map<Module, ModuleValues> plan(JsonObject root) {
+        EngineDataMigration.metadata(root);
         Map<String, Module> registered = registry();
         Map<Module, ModuleValues> result = new LinkedHashMap<>();
         Set<String> aliases = new HashSet<>();
         JsonObject modules = root.getAsJsonObject("modules");
         for (var entry : modules.entrySet()) {
-            String alias = entry.getKey().toLowerCase(Locale.ROOT);
+            String alias = EngineDataMigration.moduleName(entry.getKey()).toLowerCase(Locale.ROOT);
             if (!aliases.add(alias) || !entry.getValue().isJsonObject()) throw invalid();
             JsonObject value = entry.getValue().getAsJsonObject();
             if (value.size() != 2 || !value.has("enabled") || !value.get("enabled").isJsonPrimitive()
@@ -562,14 +576,18 @@ public final class ProfileManager {
             JsonObject saved = value.getAsJsonObject("settings");
             Set<String> settingAliases = new HashSet<>();
             for (var setting : saved.entrySet()) {
-                if (!settingAliases.add(setting.getKey().toLowerCase(Locale.ROOT))
-                        || !setting.getValue().isJsonPrimitive()) throw invalid();
+                if (!settingAliases.add(EngineDataMigration.settingName(setting.getKey())
+                        .toLowerCase(Locale.ROOT))) throw invalid();
             }
             Module module = registered.get(alias);
             if (module == null) continue; // Well-formed settings from removed/newer modules are ignored.
             Map<Setting<?>, JsonElement> settings = new LinkedHashMap<>();
             for (Setting<?> setting : module.getSettings()) {
                 JsonElement element = saved.get(setting.getName());
+                if (element == null) for (var previous : saved.entrySet())
+                    if (EngineDataMigration.settingName(previous.getKey()).equals(setting.getName())) {
+                        element = previous.getValue(); break;
+                    }
                 if (element != null) {
                     validateSetting(setting, element);
                     settings.put(setting, element.deepCopy());
@@ -591,6 +609,7 @@ public final class ProfileManager {
     }
 
     private static Map<String, Module> registry() {
+        if (BytePhase.modules != null) BytePhase.modules.syncEngineSettings();
         if (BytePhase.modules == null) throw new IllegalStateException("Modules are not ready.");
         Map<String, Module> registered = new LinkedHashMap<>();
         for (Module module : BytePhase.modules.all()) {
@@ -622,9 +641,22 @@ public final class ProfileManager {
     }
 
     private static void validateSetting(Setting<?> setting, JsonElement value) {
+        if (setting instanceof dev.bytephase.setting.LabelSetting
+                || setting instanceof dev.bytephase.setting.PreviewSetting) {
+            if (value == null || !value.isJsonNull()) throw invalid();
+            return;
+        }
+        if (setting instanceof dev.bytephase.setting.StructuredSetting) {
+            if (value == null || value.toString().length() > 1024 * 1024) throw invalid();
+            return;
+        }
         if (value == null || !value.isJsonPrimitive()) throw invalid();
         JsonPrimitive primitive = value.getAsJsonPrimitive();
-        if (setting instanceof BooleanSetting) {
+        if (setting instanceof dev.bytephase.setting.ActionSetting) {
+            if (!primitive.isBoolean() || primitive.getAsBoolean()) throw invalid();
+        } else if (setting instanceof dev.bytephase.setting.StringSetting text) {
+            if (!primitive.isString() || primitive.getAsString().length() > text.maxLength()) throw invalid();
+        } else if (setting instanceof BooleanSetting) {
             if (!primitive.isBoolean()) throw invalid();
         } else if (setting instanceof ModeSetting mode) {
             if (!primitive.isString() || !Arrays.asList(mode.getModes()).contains(primitive.getAsString())) {
@@ -680,8 +712,9 @@ public final class ProfileManager {
         if (!value.equals(setting.toJson())) throw new IllegalStateException("A setting could not be applied.");
     }
 
-    private static void restoreSettings(Map<Setting<?>, JsonElement> settings) {
+    private static void restoreSettings(Module module, Map<Setting<?>, JsonElement> settings) {
         for (var entry : settings.entrySet()) restoreSetting(entry.getKey(), entry.getValue());
+        module.onSettingsLoaded();
     }
 
     private static void verify(Map<Module, ModuleValues> previous, Map<Module, ModuleValues> plan) {
@@ -751,14 +784,20 @@ public final class ProfileManager {
 
     private static boolean restoreAllSettings(Map<Module, ModuleValues> previous, RuntimeException failure) {
         boolean restored = true;
-        for (ModuleValues module : previous.values()) {
-            for (var entry : module.settings().entrySet()) {
+        for (var module : previous.entrySet()) {
+            for (var entry : module.getValue().settings().entrySet()) {
                 try {
                     restoreSetting(entry.getKey(), entry.getValue());
                 } catch (RuntimeException error) {
                     suppress(failure, error);
                     restored = false;
                 }
+            }
+            try {
+                module.getKey().onSettingsLoaded();
+            } catch (RuntimeException error) {
+                suppress(failure, error);
+                restored = false;
             }
         }
         return restored;

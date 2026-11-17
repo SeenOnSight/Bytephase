@@ -17,7 +17,6 @@ import dev.bytephase.pvp.module.setting.BooleanSetting;
 import dev.bytephase.pvp.module.setting.ModeSetting;
 import dev.bytephase.pvp.module.setting.NumberSetting;
 import dev.bytephase.pvp.util.pvp.Rotation;
-import dev.bytephase.pvp.util.pvp.PlacementRate;
 import dev.bytephase.pvp.util.pvp.RotationUtils;
 import dev.bytephase.pvp.util.pvp.ServerRotation;
 import net.fabricmc.api.EnvType;
@@ -55,21 +54,8 @@ public final class SingleAnchorMacroModule extends ClientModule {
     private static final int GUARD_TRIES = 2;
     private static final int SETTLE_TICKS = 5;
     private static final float BLAST_PROOF = 600.0F;
-    private final NumberSetting placeCps = this.addSetting("place-cps", new NumberSetting("Place CPS", 20.0F, 0.5F, 20.0F).step(0.5F));
-    private final PlacementRate placementRate = new PlacementRate();
-    private final NumberSetting breakCps = this.addSetting("break-cps", new NumberSetting("Break CPS", 20.0F, 0.5F, 20.0F).step(0.5F));
-    private final PlacementRate breakRate = new PlacementRate();
-    private LocalPlayer ratePlayer;
-    private ClientLevel rateLevel;
     private final ModeSetting mode = this.addSetting("mode", new ModeSetting("Mode", "Single", "Single", "Double"));
-    private final NumberSetting delay = this.addSetting("delay", new NumberSetting("Delay", 0.0F, 0.0F, 100.0F).step(1.0F));
-    private final NumberSetting placeDelay = this.addSetting("place-delay", new NumberSetting("Place Delay (ms)", 0.0F, 0.0F, 5000.0F).step(50.0F));
-    private final NumberSetting chargeDelay = this.addSetting("charge-delay", new NumberSetting("Charge Delay (ms)", 0.0F, 0.0F, 5000.0F).step(50.0F));
-    private final NumberSetting detonateDelay = this.addSetting("detonate-delay", new NumberSetting("Detonate Delay (ms)", 0.0F, 0.0F, 5000.0F).step(50.0F));
-    private final NumberSetting guardDelay = this.addSetting("guard-delay", new NumberSetting("Guard Delay (ms)", 0.0F, 0.0F, 5000.0F).step(50.0F));
-    private final NumberSetting replaceDelay = this.addSetting("replace-delay", new NumberSetting("Replace Delay (ms)", 0.0F, 0.0F, 5000.0F).step(50.0F));
-    private final NumberSetting repeatDelay = this.addSetting("repeat-delay", new NumberSetting("Repeat Delay (ms)", 0.0F, 0.0F, 5000.0F).step(50.0F));
-    private final NumberSetting switchBackDelay = this.addSetting("switch-back-delay", new NumberSetting("Switch Back Delay (ms)", 0.0F, 0.0F, 5000.0F).step(50.0F));
+    private final NumberSetting delay = this.addSetting("delay", new NumberSetting("Delay", 0.0F, 0.0F, 5.0F).step(1.0F));
     private final BooleanSetting blastGuard = this.addSetting("safe-anchor", new BooleanSetting("Safe Anchor", true));
     private final ModeSetting withoutGuard = this.addSetting("without-guard", new ModeSetting("If Unguarded", "Detonate", "Detonate", "Cancel"));
     private final BooleanSetting switchBack = this.addSetting("switch-back", new BooleanSetting("Switch Back", false));
@@ -78,7 +64,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
     private int tick;
     private int readyAt;
     private int deadline;
-    private int repeatReadyAt;
     private int previousSlot = -1;
     private int ownSlot = -1;
     private boolean refilled;
@@ -90,25 +75,14 @@ public final class SingleAnchorMacroModule extends ClientModule {
     private Block guardBlock;
     private BlockState guardReported;
     private int guardTries;
-    private boolean rapidCycle;
-    private boolean cycleDetonated;
-    private boolean suppressingUse;
-    private BlockPos detonatedPos;
-    private ClientLevel detonatedLevel;
-    private int detonationUntil;
 
     public SingleAnchorMacroModule() {
-        super("anchor-macro", "Anchor Macro", "Places, charges and detonates anchors while you hold use, with separate placement and break speeds.", ModuleCategory.COMBAT);
+        super("anchor-macro", "Anchor Macro", "Places, charges and blows up respawn anchors on right-click.", ModuleCategory.COMBAT);
         this.withoutGuard.visibleWhen(this.blastGuard::get);
-        this.guardDelay.visibleWhen(this.blastGuard::get);
-        this.replaceDelay.visibleWhen(() -> this.mode.is(DOUBLE));
-        this.switchBackDelay.visibleWhen(this.switchBack::get);
     }
 
     @Override
     protected void onEnable() {
-        this.resetPlacementRate();
-        this.clearDetonation();
         this.stop();
     }
 
@@ -123,8 +97,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
         }
 
         this.stop();
-        this.clearDetonation();
-        this.resetPlacementRate();
     }
 
     @EventHandler
@@ -132,24 +104,10 @@ public final class SingleAnchorMacroModule extends ClientModule {
         this.tick++;
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
-        if (player != this.ratePlayer || mc.level != this.rateLevel) {
-            this.placementRate.reset();
-            this.breakRate.reset();
-            this.repeatReadyAt = 0;
-            this.ratePlayer = player;
-            this.rateLevel = mc.level;
-        }
-        if (!mc.isWindowActive()) {
-            this.stop();
-            return;
-        }
         if (player != null && mc.level != null && mc.gameMode != null && !player.isDeadOrDying()) {
             LootLatch.update(mc, player);
             LootGuard.update(mc.level, player);
             Inventory inventory = player.getInventory();
-            if (this.step == SingleAnchorMacroModule.Step.IDLE && this.suppressingUse) {
-                this.stop();
-            }
             if (mc.screen != null) {
                 if (this.step != SingleAnchorMacroModule.Step.IDLE && this.step != SingleAnchorMacroModule.Step.SWITCH_BACK) {
                     this.wrapUp(inventory);
@@ -169,13 +127,10 @@ public final class SingleAnchorMacroModule extends ClientModule {
                     if (!player.isUsingItem() && anchorInPlay(mc, player)) {
                         suppressUse(mc);
                     }
-                } else if (this.step == SingleAnchorMacroModule.Step.IDLE
-                        && (this.waitingForDetonation(mc) || this.waitingForRepeat(mc))) {
-                    suppressUse(mc);
                 } else if (this.step != SingleAnchorMacroModule.Step.IDLE || this.tryStart(mc, player)) {
                     swallowClicks(mc);
                     if (this.step == SingleAnchorMacroModule.Step.SWITCH_BACK) {
-                        if (this.tick >= this.readyAt && !MeleeAttacks.actedThisTick(player)) {
+                        if (!MeleeAttacks.actedThisTick(player)) {
                             if (this.switchBackDue(inventory)) {
                                 inventory.setSelectedSlot(this.previousSlot);
                             }
@@ -184,7 +139,7 @@ public final class SingleAnchorMacroModule extends ClientModule {
                         }
                     } else {
                         for (int i = 0;
-                            i < MAX_STEPS_PER_TICK
+                            i < 4
                                 && this.tick >= this.readyAt
                                 && this.step != SingleAnchorMacroModule.Step.IDLE
                                 && this.step != SingleAnchorMacroModule.Step.SWITCH_BACK;
@@ -207,7 +162,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
             }
         } else {
             this.stop();
-            this.clearDetonation();
         }
     }
 
@@ -230,9 +184,7 @@ public final class SingleAnchorMacroModule extends ClientModule {
     }
 
     private boolean tryStart(Minecraft mc, LocalPlayer player) {
-        boolean held = Crystals.isPhysicallyDown(mc, mc.options.keyUse);
-        if ((held || MeleeAttacks.rightClickComing(mc)) && mc.isWindowActive()
-                && MeleeAttacks.canAct(mc) && !CombatMacroLock.heldByOther(this)) {
+        if (MeleeAttacks.rightClickComing(mc) && !CombatMacroLock.heldByOther(this)) {
             if (!player.isSpectator()
                 && canClick(player)
                 && !MeleeAttacks.actedThisTick(player)
@@ -247,10 +199,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
                         target = hit.getBlockPos().immutable();
                     } else {
                         if (!player.getMainHandItem().is(Items.RESPAWN_ANCHOR) || ServerRotation.pending()) {
-                            return false;
-                        }
-                        if (!this.placementRate.ready(player.tickCount, this.placeCps.get())) {
-                            this.suppressUse(mc);
                             return false;
                         }
 
@@ -284,15 +232,15 @@ public final class SingleAnchorMacroModule extends ClientModule {
                     }
 
                     this.previousSlot = inventory.getSelectedSlot();
-                    this.rapidCycle = held;
-                    this.cycleDetonated = false;
                     this.activeLevel = level;
                     this.anchorPos = target;
                     this.sightline = hit.getLocation();
+                    SingleAnchorMacroModule.Step first = this.blastGuard.get() ? SingleAnchorMacroModule.Step.GUARD : SingleAnchorMacroModule.Step.CHARGE;
                     if (onAnchor) {
-                        this.scheduleNow(this.afterPlacement());
+                        this.scheduleNow(first);
                     } else {
-                        this.scheduleNow(SingleAnchorMacroModule.Step.PLACE);
+                        AnchorGuard.click(mc, player, hit);
+                        this.schedule(first);
                     }
 
                     return true;
@@ -307,7 +255,7 @@ public final class SingleAnchorMacroModule extends ClientModule {
         }
     }
 
-    private void swallowClicks(Minecraft mc) {
+    private static void swallowClicks(Minecraft mc) {
         MeleeAttacks.takeAttackClicks(mc);
         suppressUse(mc);
     }
@@ -319,8 +267,7 @@ public final class SingleAnchorMacroModule extends ClientModule {
             : true;
     }
 
-    private void suppressUse(Minecraft mc) {
-        this.suppressingUse = true;
+    private static void suppressUse(Minecraft mc) {
         KeyMapping use = mc.options.keyUse;
         use.setDown(false);
 
@@ -330,9 +277,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
 
     private void runStep(Minecraft mc, LocalPlayer player) {
         switch (this.step) {
-            case PLACE:
-                this.place(mc, player);
-                break;
             case GUARD:
                 this.placeGuard(mc, player);
                 break;
@@ -348,42 +292,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
             case REPLACE:
                 this.replace(mc, player);
         }
-    }
-
-    private SingleAnchorMacroModule.Step afterPlacement() {
-        return this.blastGuard.get() ? SingleAnchorMacroModule.Step.GUARD : SingleAnchorMacroModule.Step.CHARGE;
-    }
-
-    private void place(Minecraft mc, LocalPlayer player) {
-        Inventory inventory = player.getInventory();
-        if (!player.getMainHandItem().is(Items.RESPAWN_ANCHOR) || !canClick(player)
-                || ServerRotation.pending() || ServerRotation.desynced()) {
-            this.wrapUp(inventory);
-            return;
-        }
-        if (!this.placementRate.ready(player.tickCount, this.placeCps.get())) {
-            this.readyAt = this.tick + 1;
-            this.deadline = this.readyAt + this.settleWindow();
-            return;
-        }
-        if (!(player.pick(player.blockInteractionRange(), 1.0F, false) instanceof BlockHitResult hit)
-                || hit.getType() != Type.BLOCK) {
-            this.wrapUp(inventory);
-            return;
-        }
-        BlockPos target = Crystals.placedObsidian(mc.level, player, hit, mc.level.getBlockState(hit.getBlockPos()));
-        if (!this.anchorPos.equals(target)
-                || this.protectLoot.get() && LootGuard.near(Vec3.atCenterOf(target))) {
-            this.wrapUp(inventory);
-            return;
-        }
-        if (!AnchorGuard.click(mc, player, hit)) {
-            this.readyAt = this.tick + 1;
-            return;
-        }
-        this.sightline = hit.getLocation();
-        this.placementRate.placed(player.tickCount, this.placeCps.get());
-        this.schedule(this.afterPlacement());
     }
 
     private void expire(Inventory inventory) {
@@ -417,10 +325,7 @@ public final class SingleAnchorMacroModule extends ClientModule {
                         this.guardBlock = Block.byItem(inventory.getItem(slot).getItem());
                         this.guardReported = null;
                         this.select(inventory, slot);
-                        if (!AnchorGuard.click(mc, player, hit)) {
-                            this.readyAt = this.tick + 1;
-                            return;
-                        }
+                        AnchorGuard.click(mc, player, hit);
                         ServerRotation.request(RotationUtils.fromTo(player.getEyePosition(), Vec3.atCenterOf(this.anchorPos)));
                         this.guardTries++;
                         if (this.withoutGuard.is("Cancel")) {
@@ -479,11 +384,8 @@ public final class SingleAnchorMacroModule extends ClientModule {
                     this.readyAt = this.tick + 1;
                 } else {
                     this.select(inventory, glowstone);
-                    if (AnchorGuard.click(mc, player, hit)) {
-                        this.schedule(SingleAnchorMacroModule.Step.DETONATE);
-                    } else {
-                        this.readyAt = this.tick + 1;
-                    }
+                    AnchorGuard.click(mc, player, hit);
+                    this.schedule(SingleAnchorMacroModule.Step.DETONATE);
                 }
             } else {
                 this.wrapUp(inventory);
@@ -494,11 +396,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
     private void detonate(Minecraft mc, LocalPlayer player) {
         Inventory inventory = player.getInventory();
         if (chargeOf(mc.level.getBlockState(this.anchorPos)) != 0 && canClick(player) && !player.getOffhandItem().is(Items.GLOWSTONE)) {
-            if (!this.breakRate.ready(player.tickCount, this.breakCps.get())) {
-                this.readyAt = this.tick + 1;
-                this.deadline = this.readyAt + this.settleWindow();
-                return;
-            }
             BlockHitResult hit = AnchorGuard.anchorHit(mc.level, player, this.anchorPos);
             if (hit == null) {
                 this.readyAt = this.tick + 1;
@@ -517,15 +414,7 @@ public final class SingleAnchorMacroModule extends ClientModule {
                     this.wrapUp(inventory);
                 } else {
                     this.select(inventory, slot);
-                    if (!AnchorGuard.click(mc, player, hit)) {
-                        this.readyAt = this.tick + 1;
-                        return;
-                    }
-                    this.breakRate.placed(player.tickCount, this.breakCps.get());
-                    this.cycleDetonated = true;
-                    this.detonatedPos = this.anchorPos;
-                    this.detonatedLevel = mc.level;
-                    this.detonationUntil = this.tick + Math.max(20, Crystals.confirmWindow(mc, player) * 2);
+                    AnchorGuard.click(mc, player, hit);
                     if (slot == refillSlot) {
                         this.refilled = true;
                         this.replaceHit = hit;
@@ -542,15 +431,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
 
     private void replace(Minecraft mc, LocalPlayer player) {
         Inventory inventory = player.getInventory();
-        if (mc.level.getBlockState(this.anchorPos).is(Blocks.RESPAWN_ANCHOR)) {
-            this.readyAt = this.tick + 1;
-            return;
-        }
-        if (!this.placementRate.ready(player.tickCount, this.placeCps.get())) {
-            this.readyAt = this.tick + 1;
-            this.deadline = this.readyAt + this.settleWindow();
-            return;
-        }
         Rotation sent = ServerRotation.sent();
         Vec3 eye = player.getEyePosition();
         boolean stillAimed = sent != null
@@ -558,12 +438,7 @@ public final class SingleAnchorMacroModule extends ClientModule {
                 .clip(eye, eye.add(Vec3.directionFromRotation(sent.pitch(), sent.yaw()).scale(player.blockInteractionRange())))
                 .isPresent();
         if (this.replaceHit != null && stillAimed && player.getMainHandItem().is(Items.RESPAWN_ANCHOR) && canClick(player)) {
-            if (!AnchorGuard.click(mc, player, this.replaceHit)) {
-                this.readyAt = this.tick + 1;
-                return;
-            }
-            this.placementRate.placed(player.tickCount, this.placeCps.get());
-            this.clearDetonation();
+            AnchorGuard.click(mc, player, this.replaceHit);
             this.replaceHit = null;
             this.schedule(SingleAnchorMacroModule.Step.CHARGE);
         } else {
@@ -581,22 +456,8 @@ public final class SingleAnchorMacroModule extends ClientModule {
     }
 
     private void wrapUp(Inventory inventory) {
-        Minecraft mc = Minecraft.getInstance();
-        if (this.cycleDetonated) {
-            this.repeatReadyAt = this.tick + millisToTicks(this.repeatDelay.getInt());
-        }
-        if (this.cycleDetonated && this.rapidCycle && mc.screen == null
-                && mc.level == this.activeLevel && mc.isWindowActive()
-                && Crystals.isPhysicallyDown(mc, mc.options.keyUse)) {
-            int anchorSlot = findHotbar(inventory, Items.RESPAWN_ANCHOR);
-            if (anchorSlot != -1) {
-                inventory.setSelectedSlot(anchorSlot);
-                this.stop();
-                return;
-            }
-        }
         if (this.switchBackDue(inventory)) {
-            this.scheduleNow(SingleAnchorMacroModule.Step.SWITCH_BACK);
+            this.step = SingleAnchorMacroModule.Step.SWITCH_BACK;
         } else {
             this.stop();
         }
@@ -614,20 +475,7 @@ public final class SingleAnchorMacroModule extends ClientModule {
         return inventory.getSelectedSlot() != (this.ownSlot != -1 ? this.ownSlot : this.previousSlot);
     }
 
-    private boolean waitingForRepeat(Minecraft mc) {
-        return this.isEnabled() && this.tick < this.repeatReadyAt
-            && mc.player != null && mc.level != null
-            && !mc.player.isUsingItem() && anchorInPlay(mc, mc.player);
-    }
-
     private void stop() {
-        if (this.suppressingUse) {
-            Minecraft mc = Minecraft.getInstance();
-            mc.options.keyUse.setDown(mc.screen == null && mc.isWindowActive()
-                && !this.waitingForRepeat(mc)
-                && Crystals.isPhysicallyDown(mc, mc.options.keyUse));
-            this.suppressingUse = false;
-        }
         this.step = SingleAnchorMacroModule.Step.IDLE;
         this.anchorPos = null;
         this.sightline = null;
@@ -640,65 +488,19 @@ public final class SingleAnchorMacroModule extends ClientModule {
         this.guardBlock = null;
         this.guardReported = null;
         this.guardTries = 0;
-        this.rapidCycle = false;
-        this.cycleDetonated = false;
         CombatMacroLock.release(this);
     }
 
-    private boolean waitingForDetonation(Minecraft mc) {
-        if (this.detonatedPos != null && this.detonatedLevel == mc.level
-                && this.tick <= this.detonationUntil
-                && mc.level.getBlockState(this.detonatedPos).is(Blocks.RESPAWN_ANCHOR)) {
-            return true;
-        }
-        this.clearDetonation();
-        return false;
-    }
-
-    private void clearDetonation() {
-        this.detonatedPos = null;
-        this.detonatedLevel = null;
-        this.detonationUntil = 0;
-    }
-
-    private void resetPlacementRate() {
-        this.placementRate.reset();
-        this.breakRate.reset();
-        this.repeatReadyAt = 0;
-        this.ratePlayer = null;
-        this.rateLevel = null;
-    }
-
     private void schedule(SingleAnchorMacroModule.Step next) {
-        this.schedule(next, this.rapidCycle ? 0 : 1);
+        this.step = next;
+        this.readyAt = this.tick + 1 + this.delay.getInt();
+        this.deadline = this.readyAt + 5;
     }
 
     private void scheduleNow(SingleAnchorMacroModule.Step next) {
-        this.schedule(next, 0);
-    }
-
-    private void schedule(SingleAnchorMacroModule.Step next, int baseTicks) {
         this.step = next;
-        int stageMillis = switch (next) {
-            case PLACE -> this.placeDelay.getInt();
-            case GUARD -> this.guardDelay.getInt();
-            case CHARGE -> this.chargeDelay.getInt();
-            case DETONATE -> this.detonateDelay.getInt();
-            case REPLACE -> this.placeDelay.getInt() + this.replaceDelay.getInt();
-            case SWITCH_BACK -> this.switchBackDelay.getInt();
-            default -> 0;
-        };
-        this.readyAt = this.tick + baseTicks + this.delay.getInt() + millisToTicks(stageMillis);
-        this.deadline = this.readyAt + this.settleWindow();
-    }
-
-    private static int millisToTicks(int millis) {
-        return (millis + 49) / 50;
-    }
-
-    private int settleWindow() {
-        Minecraft mc = Minecraft.getInstance();
-        return mc.player == null ? SETTLE_TICKS : Math.max(SETTLE_TICKS, Crystals.confirmWindow(mc, mc.player));
+        this.readyAt = this.tick;
+        this.deadline = this.tick + 5;
     }
 
     private void select(Inventory inventory, int slot) {
@@ -771,7 +573,6 @@ public final class SingleAnchorMacroModule extends ClientModule {
     @Environment(EnvType.CLIENT)
     private enum Step {
         IDLE,
-        PLACE,
         GUARD,
         AWAIT_GUARD,
         CHARGE,

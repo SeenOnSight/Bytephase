@@ -1,5 +1,6 @@
 package dev.bytephase.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import dev.bytephase.BytePhase;
 import dev.bytephase.module.render.CustomFov;
 import dev.bytephase.module.render.NoRender;
@@ -7,6 +8,7 @@ import dev.bytephase.module.render.Zoom;
 import dev.bytephase.render.RenderResources;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -18,6 +20,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
+    @ModifyExpressionValue(method = "render", at = @At(value = "FIELD",
+        target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;"))
+    private Screen bytephase$privateScreenForRender(Screen screen) {
+        return dev.bytephase.render.capture.StreamProof.screenForRender(screen);
+    }
+
     @Inject(method = "close", at = @At("HEAD"))
     private void bytephase$disposeRenderResources(CallbackInfo ci) {
         dev.bytephase.render.capture.StreamProof.close();

@@ -18,7 +18,7 @@ import java.util.Map;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class ConfigManager {
-    private static final int CONFIG_VERSION = 9;
+    private static final int CONFIG_VERSION = 10;
     private static final Map<String, Integer> PREVIOUS_ESP_DEFAULTS = Map.ofEntries(
             Map.entry("ESP.PlayerColor", 0xFFFF5555),
             Map.entry("ESP.MonsterColor", 0xFF55FF55),
@@ -49,10 +49,11 @@ public final class ConfigManager {
             Map.entry("LogoutSpots.Color", 0xFFFF5050));
 
     private final Path path = FabricLoader.getInstance().getConfigDir().resolve("bytephase.json");
-    private final Path legacyPath = FabricLoader.getInstance().getConfigDir().resolve("aftermath.json");
+    private final Path legacyPath = EngineDataMigration.legacyConfigFile();
     private boolean loading;
     // Preserve newer or unreadable configs when modules are toggled or on exit.
     private boolean preserveUnreadableConfig;
+    private JsonObject retainedRoot = new JsonObject();
 
     public boolean isLoading() {
         return loading;
@@ -60,8 +61,10 @@ public final class ConfigManager {
 
     /** Ticks to wait after the last change before writing, so rapid toggles share one write. */
     private static final int SAVE_DEBOUNCE_TICKS = 20;
+    private static final int MAX_SAVE_DELAY_TICKS = 100;
     private boolean dirty;
     private int dirtyTicks;
+    private int dirtyAgeTicks;
 
     /**
      * Schedules a save instead of writing synchronously. Toggling a module or
@@ -69,35 +72,57 @@ public final class ConfigManager {
      * every time, which showed up as a frame hitch during fights.
      */
     public void requestSave() {
+        if (BytePhase.mc != null && !BytePhase.mc.isOnThread()) {
+            BytePhase.mc.execute(this::requestSave);
+            return;
+        }
         if (loading || preserveUnreadableConfig) {
             return;
         }
+        if (!dirty) dirtyAgeTicks = 0;
         dirty = true;
         dirtyTicks = 0;
     }
 
     /** Called once per client tick; performs the pending save after the debounce delay. */
     public void tick() {
-        if (dirty && ++dirtyTicks >= SAVE_DEBOUNCE_TICKS) {
+        if (dirty && (++dirtyTicks >= SAVE_DEBOUNCE_TICKS
+                || ++dirtyAgeTicks >= MAX_SAVE_DELAY_TICKS)) {
             save();
         }
     }
 
     public void save() {
+        if (BytePhase.mc != null && !BytePhase.mc.isOnThread()) {
+            BytePhase.mc.execute(this::save);
+            return;
+        }
         if (loading || preserveUnreadableConfig || BytePhase.modules == null) {
             return;
         }
         Path temporary = null;
         try {
-            JsonObject root = new JsonObject();
+            JsonObject root = retainedRoot.deepCopy();
+            BytePhase.modules.syncEngineSettings();
             root.addProperty("configVersion", CONFIG_VERSION);
             root.add("clickGui", ClickGuiScreen.saveLayout());
             JsonObject modulesJson = new JsonObject();
+            JsonElement retainedModules = root.get("modules");
+            if (retainedModules != null && retainedModules.isJsonObject()) {
+                for (var entry : retainedModules.getAsJsonObject().entrySet()) {
+                    Module known = BytePhase.modules.getByName(entry.getKey());
+                    modulesJson.add(known == null ? entry.getKey() : known.getName(), entry.getValue().deepCopy());
+                }
+            }
             for (Module module : BytePhase.modules.all()) {
-                JsonObject moduleJson = new JsonObject();
+                JsonElement previous = modulesJson.get(module.getName());
+                JsonObject moduleJson = previous != null && previous.isJsonObject()
+                        ? previous.getAsJsonObject() : new JsonObject();
                 moduleJson.addProperty("enabled", module.isEnabled());
                 if (!module.getSettings().isEmpty()) {
-                    JsonObject settingsJson = new JsonObject();
+                    JsonElement previousSettings = moduleJson.get("settings");
+                    JsonObject settingsJson = previousSettings != null && previousSettings.isJsonObject()
+                            ? previousSettings.getAsJsonObject() : new JsonObject();
                     for (Setting<?> setting : module.getSettings()) {
                         settingsJson.add(setting.getName(), setting.toJson());
                     }
@@ -118,6 +143,7 @@ public final class ConfigManager {
             } catch (AtomicMoveNotSupportedException e) {
                 Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
             }
+            retainedRoot = root;
             dirty = false;
         } catch (Exception e) {
             // Retry after the debounce delay, including when an explicit save
@@ -126,6 +152,7 @@ public final class ConfigManager {
             BytePhase.LOGGER.error("Failed to save config to {}", path, e);
         } finally {
             dirtyTicks = 0;
+            dirtyAgeTicks = 0;
             if (temporary != null) {
                 try {
                     Files.deleteIfExists(temporary);
@@ -151,6 +178,7 @@ public final class ConfigManager {
                 return;
             }
             JsonObject root = parsed.getAsJsonObject();
+            EngineDataMigration.metadata(root);
             int version = root.has("configVersion") && root.get("configVersion").isJsonPrimitive()
                     ? root.get("configVersion").getAsInt() : 0;
             if (version > CONFIG_VERSION) {
@@ -167,12 +195,14 @@ public final class ConfigManager {
             // user values that happen to equal the old default.
             boolean migrateV2Defaults = version < 3;
             boolean migratePlayerEspStyle = version < 4;
+            boolean migrateMonochromeDefaults = version < 10;
             JsonObject modulesJson = root.getAsJsonObject("modules");
             if (modulesJson == null) {
                 preserveUnreadableConfig = true;
                 BytePhase.LOGGER.warn("Config {} has no modules object; leaving it untouched", source);
                 return;
             }
+            retainedRoot = root.deepCopy();
             ClickGuiScreen.loadLayout(root.get("clickGui"));
             for (Entry<String, JsonElement> entry : modulesJson.entrySet()) {
                 try {
@@ -185,8 +215,23 @@ public final class ConfigManager {
                         JsonObject settingsJson = moduleJson.getAsJsonObject("settings");
                         for (Setting<?> setting : module.getSettings()) {
                             JsonElement settingJson = settingsJson.get(setting.getName());
+                            if (settingJson == null) for (var previous : settingsJson.entrySet())
+                                if (EngineDataMigration.settingName(previous.getKey()).equals(setting.getName())) {
+                                    settingJson = previous.getValue(); break;
+                                }
                             if (settingJson != null) {
                                 try {
+                                    if (migrateMonochromeDefaults && module.getName().equals("Appearance")
+                                            && setting instanceof ColorSetting && settingJson.isJsonPrimitive()) {
+                                        int old = settingJson.getAsInt();
+                                        boolean previousDefault = switch (setting.getName()) {
+                                            case "Accent" -> old == 0xFF6C6FF5 || old == 0xFF6466E9;
+                                            case "Text" -> old == 0xFFF0F1FF;
+                                            case "Background color" -> old == 0xFF1A1850;
+                                            default -> false;
+                                        };
+                                        if (previousDefault) continue;
+                                    }
 
                                     if (migrateLegacyDefaults && isPreviousEspDefault(module, setting, settingJson)) {
                                         continue;
@@ -213,6 +258,7 @@ public final class ConfigManager {
                             }
                         }
                     }
+                    module.onSettingsLoaded();
                     boolean enabled = moduleJson.has("enabled") && moduleJson.get("enabled").getAsBoolean();
                     module.setEnabled(enabled);
                 } catch (RuntimeException moduleError) {

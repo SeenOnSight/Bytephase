@@ -75,31 +75,43 @@ public final class Render2D {
         }
     }
 
-    /** Rounded filled rect that only draws its 1px border. */
+    /** One-pixel inset ring, using the same outer silhouette as roundedRect. */
     public static void roundedOutline(DrawContext context, int x, int y, int width, int height, int radius, int argb) {
         if (width <= 0 || height <= 0) {
+            return;
+        }
+        if (width <= 2 || height <= 2) {
+            roundedRect(context, x, y, width, height, radius, argb);
             return;
         }
         int r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
         if (r == 0) {
             context.fill(x, y, x + width, y + 1, argb);
             context.fill(x, y + height - 1, x + width, y + height, argb);
-            context.fill(x, y, x + 1, y + height, argb);
-            context.fill(x + width - 1, y, x + width, y + height, argb);
+            context.fill(x, y + 1, x + 1, y + height - 1, argb);
+            context.fill(x + width - 1, y + 1, x + width, y + height - 1, argb);
             return;
         }
 
-        context.fill(x + r, y, x + width - r, y + 1, argb);
-        context.fill(x + r, y + height - 1, x + width - r, y + height, argb);
-        context.fill(x, y + r, x + 1, y + height - r, argb);
-        context.fill(x + width - 1, y + r, x + width, y + height - r, argb);
+        if (height > 2 * r) {
+            context.fill(x, y + r, x + 1, y + height - r, argb);
+            context.fill(x + width - 1, y + r, x + width, y + height - r, argb);
+        }
 
         for (int row = 0; row < r; row++) {
-            int inset = cornerInset(r, row);
-            context.fill(x + inset, y + row, x + inset + 1, y + row + 1, argb);
-            context.fill(x + width - inset - 1, y + row, x + width - inset, y + row + 1, argb);
-            context.fill(x + inset, y + height - 1 - row, x + inset + 1, y + height - row, argb);
-            context.fill(x + width - inset - 1, y + height - 1 - row, x + width - inset, y + height - row, argb);
+            int outer = cornerInset(r, row);
+            if (row == 0) {
+                context.fill(x + outer, y, x + width - outer, y + 1, argb);
+                context.fill(x + outer, y + height - 1, x + width - outer, y + height, argb);
+                continue;
+            }
+            // Subtract the inset rounded shape. Curves need wider horizontal
+            // spans near their top; endpoint pixels alone leave visible gaps.
+            int inner = 1 + cornerInset(r - 1, row - 1);
+            context.fill(x + outer, y + row, x + inner, y + row + 1, argb);
+            context.fill(x + width - inner, y + row, x + width - outer, y + row + 1, argb);
+            context.fill(x + outer, y + height - 1 - row, x + inner, y + height - row, argb);
+            context.fill(x + width - inner, y + height - 1 - row, x + width - outer, y + height - row, argb);
         }
     }
 

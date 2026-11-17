@@ -6,7 +6,6 @@ import com.llamalad7.mixinextras.sugar.Local;
 import dev.bytephase.pvp.event.impl.MouseInputEvent;
 import dev.bytephase.pvp.module.ModuleRegistry;
 import dev.bytephase.pvp.module.impl.combat.AimAssistModule;
-import dev.bytephase.pvp.module.impl.combat.TriggerbotModule;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.input.MouseButtonInfo;
@@ -38,9 +37,4 @@ public abstract class MixinMouseHandler {
         original.call(player, yaw, pitch);
     }
 
-    @Inject(method = "turnPlayer", at = @At("TAIL"))
-    private void bytephase$pvpTriggerFrame(double movementTime, CallbackInfo ci) {
-        var trigger = ModuleRegistry.get(TriggerbotModule.class);
-        if (trigger != null && trigger.isEnabled()) trigger.onFrame();
-    }
 }

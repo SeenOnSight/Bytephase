@@ -61,7 +61,6 @@ import dev.bytephase.module.render.ArrayListView;
 import dev.bytephase.module.render.ArmorHud;
 import dev.bytephase.module.render.BetterChat;
 import dev.bytephase.module.render.BlockEsp;
-import dev.bytephase.module.render.BlockHighlight;
 import dev.bytephase.module.render.BreadCrumbs;
 import dev.bytephase.module.render.Coordinates;
 import dev.bytephase.module.render.Crosshair;
@@ -106,7 +105,7 @@ import dev.bytephase.module.world.TunnelMiner;
 import dev.bytephase.render.EntitySnapshot;
 import dev.bytephase.render.EspRenderer;
 import dev.bytephase.render.RenderBox;
-import dev.bytephase.render.esp.ClarityEspRenderer;
+import dev.bytephase.render.esp.BytephaseEspRenderer;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -251,6 +250,9 @@ public final class ModuleManager {
         add(new Ping());
         add(new ArrayListView());
         add(new ArmorHud());
+        add(new dev.bytephase.module.render.Keystrokes());
+        add(new dev.bytephase.module.render.Compass());
+        add(new dev.bytephase.module.render.InventoryHud());
         add(new StatusEffects());
         add(new Tracers());
         add(new PlayerEsp());
@@ -260,7 +262,6 @@ public final class ModuleManager {
         add(new TargetHud());
         add(new StorageEsp());
         add(new HoleEsp());
-        add(new BlockHighlight());
         add(new MiningProgress());
         add(new HideArmor());
         add(new Fullbright());
@@ -324,6 +325,12 @@ public final class ModuleManager {
         add(new SlowSwing());
         add(new AntiVanish());
 
+        rebuildActiveModules();
+    }
+
+    /** Adds features whose graphics helpers must wait until the game window exists. */
+    public void initImportedFeatures() {
+        for (var module : dev.bytephase.module.engine.BytephaseIntegration.modules()) add(module);
         rebuildActiveModules();
     }
 
@@ -528,7 +535,17 @@ public final class ModuleManager {
     public <T extends Module> T get(Class<T> type) { return type.cast(byClass.get(type)); }
 
     public Module getByName(String name) {
-        return name == null ? null : byName.get(name.toLowerCase(Locale.ROOT));
+        if (name == null) return null;
+        String key = name.toLowerCase(Locale.ROOT);
+        Module found = byName.get(key);
+        return found != null ? found : byName.get(dev.bytephase.config.EngineDataMigration.moduleName(key).toLowerCase(Locale.ROOT));
+    }
+
+    public void syncEngineSettings() {
+        for (Module module : modules) {
+            if (module instanceof dev.bytephase.module.engine.BytephaseModule engine) engine.syncSettings(true);
+            else if (module instanceof dev.bytephase.module.combat.ImportedCombat combat) combat.syncSettings(true);
+        }
     }
 
     public Zoom zoom() { return dev.bytephase.render.capture.StreamProof.isCleanFrame() ? null : zoom; }
@@ -633,7 +650,9 @@ public final class ModuleManager {
                 continue;
             }
             try {
-                module.onRender2D(context, tickDelta);
+                if (module.usesProjection()) module.onRender2D(context, tickDelta);
+                else dev.bytephase.render.HudLayout.draw("module:" + module.getName(), context,
+                    () -> module.onRender2D(context, tickDelta));
             } catch (Exception e) {
                 report(module, "HUD render", e);
             }
@@ -705,7 +724,7 @@ public final class ModuleManager {
             // box styles; class-loading it compiles all supplied programs.
             if (EspRenderer.hasQueuedShader()) {
                 try {
-                    ClarityEspRenderer.flush();
+                    BytephaseEspRenderer.flush();
                 } finally {
                     EspRenderer.clearQueuedShader();
                 }

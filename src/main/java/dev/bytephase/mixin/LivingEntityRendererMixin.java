@@ -19,10 +19,19 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.entity.LivingEntity;
 
 /** Adds a tinted, translucent model surface to Player ESP's Model Chams style. */
 @Mixin(LivingEntityRenderer.class)
 public abstract class LivingEntityRendererMixin {
+    @Inject(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At("RETURN"))
+    private void bytephase$windChargePose(LivingEntity entity, LivingEntityRenderState state, float delta, CallbackInfo ci) {
+        if (BytePhase.mc == null || entity != BytePhase.mc.player) return;
+        var module = ai.auth.ModuleRegistry.getModule(dev.bytephase.engine.categories.combat.PerfectWindCharge.class);
+        if (module instanceof dev.bytephase.engine.categories.combat.PerfectWindCharge charge && charge.hasSilentRotation())
+            state.pitch = charge.silentPitch();
+    }
     @Unique
     private int bytephase$pendingModelTint = 0;
 

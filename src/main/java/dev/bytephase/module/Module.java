@@ -55,7 +55,13 @@ public abstract class Module {
         return enabled && !dev.bytephase.render.capture.StreamProof.isCleanFrame();
     }
 
+    /** Saved toggle state, including during a frame with hidden overlays. */
+    public final boolean isConfiguredEnabled() {
+        return enabled;
+    }
+
     public void setEnabled(boolean value) {
+        if (value && dev.bytephase.engine.utils.DirExtractionUtils.isFlag()) return;
         // Retired modules and arbitrary instances cannot be reactivated by an
         // old configuration or profile. Only the current catalog owns modules.
         if (value && BytePhase.modules != null && !BytePhase.modules.all().contains(this)) {
@@ -90,11 +96,15 @@ public abstract class Module {
             BytePhase.config.requestSave();
         }
         dev.bytephase.module.misc.Notifications.onToggled(this);
+        dev.bytephase.module.engine.BytephaseIntegration.onToggled(this, value);
     }
 
     public void toggle() {
         setEnabled(!enabled);
     }
+
+    /** Completes restoration of settings that share underlying state. */
+    public void onSettingsLoaded() { }
 
     /**
      * Restores any global client state without changing the configured enabled

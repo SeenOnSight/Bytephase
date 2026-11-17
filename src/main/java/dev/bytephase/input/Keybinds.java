@@ -22,6 +22,7 @@ public final class Keybinds {
     private static final KeyBinding.Category CATEGORY =
             KeyBinding.Category.create(Identifier.of("bytephase", "main"));
     private static final Map<Module, KeyBinding> BINDINGS = new LinkedHashMap<>();
+    private static final Map<String, KeyBinding> IMPORTED_BINDINGS = new LinkedHashMap<>();
 
     private static KeyBinding clickGuiKey;
     private static boolean suppressNextClickGui;
@@ -39,8 +40,15 @@ public final class Keybinds {
                     InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
             BINDINGS.put(module, binding);
         }
+        // Fabric rejects registration after GameOptions has been initialized.
+        // Register names now and attach the actual feature instances after GLFW.
+        for (String name : dev.bytephase.module.engine.BytephaseIntegration.plannedNames()) {
+            String id = name.toLowerCase(Locale.ROOT);
+            IMPORTED_BINDINGS.put(id, KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.bytephase." + id, InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY)));
+        }
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
-            if (!(screen instanceof MerchantScreen)) {
+            if (!(screen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?>)) {
                 return;
             }
             // Vanilla does not queue ordinary module keybinds inside a handled
@@ -64,10 +72,22 @@ public final class Keybinds {
                 held[0] = false;
                 return false;
             });
+            net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents.allowMouseClick(screen).register((current, click) -> {
+                Module module = containerMouseModule(click.button());
+                if (module == null || client.currentScreen != current || !client.isWindowFocused()) return true;
+                if (!held[0]) { held[0] = true; module.toggle(); }
+                return false;
+            });
+            net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents.allowMouseRelease(screen).register((current, click) -> {
+                if (containerMouseModule(click.button()) == null) return true;
+                held[0] = false;
+                return false;
+            });
         });
     }
 
     public static void tick(MinecraftClient mc) {
+        if (dev.bytephase.engine.utils.DirExtractionUtils.isFlag()) return;
         dev.bytephase.render.capture.StreamProof.emergencyKey(mc);
         if (clickGuiKey == null) {
             return;
@@ -85,8 +105,9 @@ public final class Keybinds {
         if (mc.currentScreen != null) {
             while (clickGuiKey.wasPressed()) {
             }
-            for (KeyBinding binding : BINDINGS.values()) {
-                while (binding.wasPressed()) {
+            for (var entry : BINDINGS.entrySet()) {
+                if (entry.getKey() instanceof dev.bytephase.module.engine.BytephaseModule module && module.holdBind()) module.setEnabled(false);
+                while (entry.getValue().wasPressed()) {
                 }
             }
             screenOpen = true;
@@ -107,10 +128,24 @@ public final class Keybinds {
         }
 
         for (Map.Entry<Module, KeyBinding> entry : BINDINGS.entrySet()) {
+            if (entry.getKey() instanceof dev.bytephase.module.engine.BytephaseModule module && module.holdBind()) {
+                module.setEnabled(entry.getValue().isPressed());
+                while (entry.getValue().wasPressed()) { }
+                continue;
+            }
             while (entry.getValue().wasPressed()) {
                 Module module = entry.getKey();
                 module.toggle();
             }
+        }
+    }
+
+    public static void attachImportedFeatures() {
+        for (Module module : BytePhase.modules.all()) {
+            if (!(module instanceof dev.bytephase.module.engine.BytephaseModule)) continue;
+            KeyBinding binding = IMPORTED_BINDINGS.get(module.getName().toLowerCase(Locale.ROOT));
+            if (binding == null) throw new IllegalStateException("Missing early keybinding for " + module.getName());
+            BINDINGS.put(module, binding);
         }
     }
 
@@ -123,6 +158,7 @@ public final class Keybinds {
                 ? InputUtil.UNKNOWN_KEY
                 : InputUtil.Type.KEYSYM.createFromCode(key);
         binding.setBoundKey(newKey);
+        if (module instanceof dev.bytephase.module.engine.BytephaseModule imported) imported.bindKey(key);
         KeyBinding.updateKeysByCode();
         KeyBinding.updatePressedStates();
         MinecraftClient mc = BytePhase.mc;
@@ -136,6 +172,34 @@ public final class Keybinds {
         return binding == null ? "?" : binding.getBoundKeyLocalizedText().getString();
     }
 
+    public static void restoreLegacyBindings() {
+        java.nio.file.Path options = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve("options.txt");
+        if (!java.nio.file.Files.isRegularFile(options)) return;
+        try {
+            for (String line : java.nio.file.Files.readAllLines(options)) {
+                int split = line.indexOf(':');
+                if (split < 0 || !dev.bytephase.config.EngineDataMigration.legacyRadioKey(line.substring(0, split))) continue;
+                Module module = BytePhase.modules.getByName("BytephaseRadio");
+                KeyBinding binding = BINDINGS.get(module);
+                if (binding == null || keyCode(module) >= 0) continue;
+                InputUtil.Key key = InputUtil.fromTranslationKey(line.substring(split + 1));
+                binding.setBoundKey(key);
+                if (module instanceof dev.bytephase.module.engine.BytephaseModule engine)
+                    engine.bindKey(key.getCategory() == InputUtil.Type.MOUSE ? 1000 + key.getCode() : key.getCode());
+                KeyBinding.updateKeysByCode();
+            }
+        } catch (java.io.IOException | IllegalArgumentException error) {
+            BytePhase.LOGGER.warn("Could not restore a previous module shortcut", error);
+        }
+    }
+
+    public static int keyCode(Module module) {
+        KeyBinding binding = BINDINGS.get(module);
+        if (binding == null) return -1;
+        InputUtil.Key key = ((dev.bytephase.mixin.KeyBindingAccessor) binding).bytephase$getBoundKey();
+        return key.getCategory() == InputUtil.Type.MOUSE ? 1000 + key.getCode() : key.getCode();
+    }
+
     /** Whether this key event is the configured ClickGUI open/close key. */
     public static boolean matchesClickGui(KeyInput input) {
         return clickGuiKey != null && clickGuiKey.matchesKey(input);
@@ -147,9 +211,19 @@ public final class Keybinds {
 
     private static Module merchantModule(KeyInput input) {
         for (Map.Entry<Module, KeyBinding> entry : BINDINGS.entrySet()) {
-            if (entry.getKey() instanceof TradeAssist && entry.getValue().matchesKey(input)) {
+            if ((entry.getKey() instanceof TradeAssist && BytePhase.mc.currentScreen instanceof MerchantScreen
+                || entry.getKey() instanceof dev.bytephase.module.engine.BytephaseModule module && module.containerBind())
+                && entry.getValue().matchesKey(input)) {
                 return entry.getKey();
             }
+        }
+        return null;
+    }
+
+    private static Module containerMouseModule(int button) {
+        for (Module module : BINDINGS.keySet()) {
+            if (module instanceof dev.bytephase.module.engine.BytephaseModule imported
+                && imported.containerBind() && keyCode(module) == 1000 + button) return module;
         }
         return null;
     }

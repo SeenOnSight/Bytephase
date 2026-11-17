@@ -5,6 +5,8 @@ This is the recorded inventory for the 0.2.1 migration batch. Version
 [the PvP import guide](PVP_IMPORT.md). Its requested combat scope supersedes
 the earlier curation for those imported modules.
 
+The 0.2.4 Bytephase addition is inventoried separately in [ENGINE_FEATURES.md](ENGINE_FEATURES.md).
+
 Status: **in progress**. Version 0.2.1 is the first migration batch; it does not
 provide full feature parity with the supplied recovered source.
 

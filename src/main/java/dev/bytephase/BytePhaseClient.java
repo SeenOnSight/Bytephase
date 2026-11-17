@@ -24,6 +24,7 @@ public final class BytePhaseClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         BytePhase.mc = MinecraftClient.getInstance();
+        BytePhase.LOGGER.info("Bytephase screenfix 2026-11-16: client-thread screen changes and render-only screen masking enabled");
         BytePhase.modules = new ModuleManager();
         BytePhase.modules.init();
         BytePhase.config = new ConfigManager();
@@ -31,6 +32,7 @@ public final class BytePhaseClient implements ClientModInitializer {
         BytePhase.locations = new LocationStore();
         BytePhase.locations.load();
         Keybinds.init();
+        dev.bytephase.module.engine.BytephaseIntegration.registerRuntimeHooks();
         FakePlayerCommand.register();
         BytephaseCommand.register();
 
@@ -38,7 +40,14 @@ public final class BytePhaseClient implements ClientModInitializer {
         // onEnable. Those options only exist once MinecraftClient has finished
         // constructing, so loading during onInitializeClient left Fullbright and
         // NoBob throwing a NullPointerException and silently disabling themselves.
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> BytePhase.config.load());
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
+            dev.bytephase.config.EngineDataMigration.prepareFiles();
+            BytePhase.modules.initImportedFeatures();
+            Keybinds.attachImportedFeatures();
+            Keybinds.restoreLegacyBindings();
+            BytePhase.LOGGER.info("Bytephase startup catalog ready: {} modules", BytePhase.modules.all().size());
+            BytePhase.config.load();
+        });
 
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             dev.bytephase.module.combat.CombatIntegration.beginTick();
@@ -84,11 +93,9 @@ public final class BytePhaseClient implements ClientModInitializer {
             dev.bytephase.module.combat.CombatIntegration.renderWorldOverlays(
                 context.matrices(), context.consumers(), delta);
         });
-        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(context ->
-                dev.bytephase.module.combat.CombatIntegration.renderWorld(
-                        dev.bytephase.render.RenderProjection.tickDelta()));
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            dev.bytephase.render.ui.UiBackgroundImage.dispose();
             dev.bytephase.render.capture.StreamProof.close();
             for (Module module : BytePhase.modules.enabled()) {
                 module.shutdown();

@@ -1,11 +1,11 @@
 package dev.bytephase.render;
 
 import dev.bytephase.BytePhase;
-import dev.bytephase.render.esp.ClarityEspRenderer;
+import dev.bytephase.render.esp.BytephaseEspRenderer;
 import dev.bytephase.render.shader.FullscreenQuad;
 import dev.bytephase.render.shader.GlSamplers;
 import dev.bytephase.render.shader.GlTextures;
-import dev.bytephase.render.sky.ClaritySkyRenderer;
+import dev.bytephase.render.sky.BytephaseSkyRenderer;
 
 /** Releases Bytephase-owned native and OpenGL rendering resources at shutdown. */
 public final class RenderResources {
@@ -13,10 +13,12 @@ public final class RenderResources {
     }
 
     public static void dispose() {
-        disposeOne("ESP renderer", ClarityEspRenderer::dispose);
-        disposeOne("target effect renderer", ClarityTargetRenderer::dispose);
+        disposeOne("ClickGUI backdrop", dev.bytephase.render.ui.LiquidBackdrop::dispose);
+        disposeOne("ClickGUI background image", dev.bytephase.render.ui.UiBackgroundImage::dispose);
+        disposeOne("ESP renderer", BytephaseEspRenderer::dispose);
+        disposeOne("target effect renderer", BytephaseTargetRenderer::dispose);
         disposeOne("crosshair renderer", ShaderCrosshairRenderer::dispose);
-        disposeOne("sky renderer", ClaritySkyRenderer::dispose);
+        disposeOne("sky renderer", BytephaseSkyRenderer::dispose);
         disposeOne("fullscreen geometry", FullscreenQuad::dispose);
         disposeOne("samplers", GlSamplers::dispose);
         disposeOne("framebuffer bridges", GlTextures::dispose);

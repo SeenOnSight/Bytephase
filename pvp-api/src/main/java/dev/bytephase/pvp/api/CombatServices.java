@@ -1,6 +1,10 @@
 package dev.bytephase.pvp.api;
 
 public interface CombatServices {
+    default int accentColor() { return 0xFFC0C0C0; }
+    /** Optional utility-owned aim for an item interaction, expressed as yaw and pitch. */
+    default double[] interactionRotation() { return null; }
+    default void drawHudWidget(String name, Object graphics, Runnable draw) { draw.run(); }
     default boolean isCleanCapture() { return false; }
     boolean isEating();
     boolean isFreecam();

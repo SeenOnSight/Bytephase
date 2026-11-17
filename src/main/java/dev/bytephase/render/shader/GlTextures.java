@@ -66,7 +66,7 @@ public final class GlTextures {
 
     /**
      * Copies the current main colour attachment into a scratch texture via a
-     * blit. Used only by the Clarity blur ESP style, whose Scene sampler must
+     * blit. Used only by the Bytephase blur ESP style, whose Scene sampler must
      * not read the attachment it is writing to.
      */
     public static boolean blitMainTo(int texture, int width, int height) {
@@ -143,7 +143,7 @@ public final class GlTextures {
     public static final class BridgeTexture extends GlTexture {
         public BridgeTexture(int glId, int size) {
             super(GpuTexture.USAGE_TEXTURE_BINDING | GpuTexture.USAGE_RENDER_ATTACHMENT,
-                    "bytephase-clarity-bridge", TextureFormat.RGBA8,
+                    "bytephase-bytephase-bridge", TextureFormat.RGBA8,
                     size, size, 1, 1, glId);
         }
 

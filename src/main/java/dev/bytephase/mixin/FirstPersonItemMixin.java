@@ -12,6 +12,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.RotationAxis;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(HeldItemRenderer.class)
@@ -43,14 +44,13 @@ public abstract class FirstPersonItemMixin {
                     matrices, queue, light);
             return;
         }
-        // The matrix is the shared camera space at this point, so a raw X
-        // offset slides both hands the same way on screen and the pair looks
-        // lopsided. ViewModel mirrors it on the left arm instead.
+        // Mirror mode preserves the earlier arm-relative offset. Independent
+        // mode treats each hand's offset as its own camera-space transform.
         Arm arm = hand == Hand.MAIN_HAND ? player.getMainArm() : player.getMainArm().getOpposite();
-        float scale = view ? viewModel.scale() : 1.0f;
-        float offsetX = view ? viewModel.offsetX(arm) : 0.0f;
-        float offsetY = view ? viewModel.offsetY() : 0.0f;
-        float offsetZ = view ? viewModel.offsetZ() : 0.0f;
+        float scale = view ? viewModel.scale(hand) : 1.0f;
+        float offsetX = view ? viewModel.offsetX(hand, arm) : 0.0f;
+        float offsetY = view ? viewModel.offsetY(hand) : 0.0f;
+        float offsetZ = view ? viewModel.offsetZ(hand) : 0.0f;
         if (shield) {
             // SmallShield nudges only the offhand, so its offsets stay as typed.
             scale *= small.scale();
@@ -60,6 +60,11 @@ public abstract class FirstPersonItemMixin {
         matrices.push();
         try {
             matrices.translate(offsetX, offsetY, offsetZ);
+            if (view) {
+                if (viewModel.rotationX(hand) != 0) matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(viewModel.rotationX(hand)));
+                if (viewModel.rotationY(hand) != 0) matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(viewModel.rotationY(hand)));
+                if (viewModel.rotationZ(hand) != 0) matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(viewModel.rotationZ(hand)));
+            }
             matrices.scale(scale, scale, scale);
             original.call(player, tickDelta, pitch, hand, swingProgress, stack, equipProgress,
                     matrices, queue, light);

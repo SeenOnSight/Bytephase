@@ -571,7 +571,6 @@ public final class CrystalAuraModule extends ClientModule implements HudOverlayP
     }
 
     private CrystalAuraModule.Plan breakLook(CrystalAuraModule.Fight fight, EndCrystal crystal) {
-        if (dev.bytephase.pvp.marlow.MarlowCrystal.hidden(crystal)) return null;
         if (fight.fixedLook != null) {
             CrystalAuraModule.Plan plan = new CrystalAuraModule.Plan(
                 CrystalAuraModule.Step.BREAK, crystal, null, null, crystal.getBoundingBox().getCenter(), -2
@@ -982,17 +981,14 @@ public final class CrystalAuraModule extends ClientModule implements HudOverlayP
 
     private void select(LocalPlayer player, int slot) {
         Inventory inventory = player.getInventory();
-        boolean changed = inventory.getSelectedSlot() != slot;
         if (this.savedSlot == -1) {
             this.savedSlot = inventory.getSelectedSlot();
         }
 
         inventory.setSelectedSlot(slot);
         this.ownSlot = slot;
-        if (changed) {
-            this.lastMain = player.getMainHandItem();
-            this.mainAge = 0;
-        }
+        this.lastMain = player.getMainHandItem();
+        this.mainAge = 0;
     }
 
     private void markBreak(EndCrystal crystal) {

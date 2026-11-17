@@ -56,7 +56,9 @@ public final class CombatIntegration implements CombatProvider {
                     new dev.bytephase.pvp.module.impl.combat.SpearLungeModule(),
                     new dev.bytephase.pvp.module.impl.combat.SwordObsidianModule(),
                     new dev.bytephase.pvp.module.impl.combat.TriggerbotModule(),
-                    new dev.bytephase.pvp.module.impl.combat.WTapRecodeModule()
+                    new dev.bytephase.pvp.module.impl.combat.WTapRecodeModule(),
+                    new dev.bytephase.pvp.module.impl.render.ShaderEspModule(),
+                    new dev.bytephase.pvp.module.impl.render.BlockOverlayModule()
             );
             List<CombatModule> result = new ArrayList<>();
             for (ClientModule module : catalog) {
@@ -129,8 +131,6 @@ public final class CombatIntegration implements CombatProvider {
     @Override
     public void renderWorldOverlays(float tickDelta) {
         if (services == null || services.isCleanCapture() || !services.supportsWorldOverlays()) return;
-        var lag = ModuleRegistry.get(dev.bytephase.pvp.module.impl.combat.FakeLagModule.class);
-        if (lag != null && lag.isEnabled()) lag.renderWorldOverlay();
     }
 
     private static final class Handle implements CombatModule {
@@ -140,19 +140,27 @@ public final class CombatIntegration implements CombatProvider {
 
         Handle(ClientModule module) {
             this.module = module;
-            usesProjection = module instanceof HudOverlayProvider
+            usesProjection = !(module instanceof dev.bytephase.pvp.module.impl.render.BlockOverlayModule)
+                && (module instanceof HudOverlayProvider
                 || java.util.Arrays.stream(module.getClass().getMethods()).anyMatch(method ->
                     method.getParameterCount() == 1
                         && (method.getParameterTypes()[0] == Render2DEvent.class
-                            || method.getParameterTypes()[0] == Render3DEvent.class));
+                            || method.getParameterTypes()[0] == Render3DEvent.class)));
             settings = module.settings().stream()
                     .filter(setting -> !setting.id().equals("toggle-message"))
                     .map(SettingHandle::new).map(CombatSetting.class::cast).toList();
         }
 
         public String id() { return module.id(); }
-        public String name() { return module.name().replace(" ", ""); }
+        public String name() {
+            return module instanceof dev.bytephase.pvp.module.impl.render.BlockOverlayModule
+                    ? "Highlight" : module.name().replace(" ", "");
+        }
         public String description() { return module.description(); }
+        public String category() {
+            return module.category() == dev.bytephase.pvp.module.ModuleCategory.VISUALS
+                    ? "RENDER" : module.category().name();
+        }
         public List<CombatSetting> settings() { return settings; }
         public boolean isEnabled() { return module.isEnabled(); }
         public void setEnabled(boolean enabled) { module.setEnabled(enabled); }

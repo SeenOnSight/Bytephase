@@ -2,11 +2,17 @@
 
 [Home](../README.md) · [Exploration & workflows](EXPLORATION.md) · [Adding modules](ADDING_MODULES.md)
 
-Bytephase 0.2.3 includes 124 modules. Its 25 imported combat
+Bytephase 0.2.4 includes 211 modules. Its 27 imported combat
 modules include automated PvP and packet delay options. Gameplay testing
-remains pending. See the [PvP guide](PVP_IMPORT.md).
+remains pending. See the [Combat and GlowESP guide](COMBAT.md).
+
+See the [Bytephase feature inventory](ENGINE_FEATURES.md) for the 83 new features and
+62 existing matches skipped during the 0.2.4 import.
 
 ## Controls
+
+**Freelook** switches to third-person back while enabled and returns to the
+perspective used before activation when disabled.
 
 - `Right Shift` opens the ClickGUI. The configured ClickGUI key also closes it.
 - The supplied glass UI is now a centered native screen. Choose a category in
@@ -18,8 +24,10 @@ remains pending. See the [PvP guide](PVP_IMPORT.md).
 - Search is at the top right and searches all categories. Ctrl+F focuses it;
   standard editing and clipboard shortcuts work. Arrow keys select cards;
   Enter/Space toggles the selection and Shift+Enter opens its settings.
-- **Themes** contains accent presets and text colour. **Settings** contains
-  panel opacity, background blur and font choices. **UIFont** and **HUDFont** independently offer Inter,
+- **Themes** contains full color pickers for accent, text and background.
+  The default palette is black, silver, gray and white; the logo follows the accent.
+  **Settings** contains an image chooser, image fit/opacity, panel opacity,
+  background blur and font choices. **UIFont** and **HUDFont** independently offer Inter,
   Outfit, JetBrains Mono and Minecraft. HUDFont applies to the array list,
   coordinates and the other Bytephase HUD labels.
 - **Configs** saves, loads, overwrites, copies, imports and deletes native
@@ -146,22 +154,22 @@ loaded evidence becomes invalid. Existing visual styles are covered below.
 
 - The shared `Style` setting offers `Box` (outline), `Filled`, `Highlight`
   (fill + outline) and shader styles. `Shader` and `Shader Glow` use the
-  supplied Clarity glow pipeline; `Shader Blur`, `Shader Galaxy`,
+  supplied Bytephase glow pipeline; `Shader Blur`, `Shader Galaxy`,
   `Shader Prism`, `Shader Neon` and `Shader Scan` select the other supplied
   ESP composites. The shader styles rasterise the same batched boxes into a
   mask, run the supplied downsample/blur/composite shaders, and then draw once
-  per style. All GLSL files under `assets/bytephase/clarity_shaders/` are
+  per style. All GLSL files under `assets/bytephase/bytephase_shaders/` are
   shipped unchanged from the approved visual source.
 
 - `Crosshair` includes a Vanilla style that leaves the vanilla crosshair intact.
-  Its other styles replace the vanilla crosshair with the supplied Clarity
+  Its other styles replace the vanilla crosshair with the supplied Bytephase
   crosshair shader. It exposes style, gap, length, thickness, dot, colour
   mode, hit/target colours, outline, glow, rotation, dynamic spread, cooldown
   and hitmarker settings. `HideVanilla` keeps the vanilla crosshair out of the
   way; the module falls back to a small primitive crosshair if the raw shader
   cannot be compiled.
 
-- `SkyShaders` replaces the sky with one of the supplied Clarity presets
+- `SkyShaders` replaces the sky with one of the supplied Bytephase presets
   (`Aurora`, `Black Hole`, `Blood Moon`, `Dreamscape`, `Galaxy`, `Nebula`,
   `Prism`, `Synthwave`, `Thunderstorm`). Speed, brightness, intensity, scale,
   star density, celestial speed, horizon haze, colours and a low-resolution
@@ -199,6 +207,14 @@ ChatFilter and AntiSpam filter displayed messages; NameProtect changes local
 labels. PMSound, VisualRange, Notifications, KillEffects and AntiVanish provide
 local alerts or visuals. AutoReconnect manages reconnect attempts. PacketLogger
 and AntiPacketKick provide diagnostics and bounded decoder protection.
+
+NameProtect's `Alias` defaults to `You`. It masks both the session username and
+the current player profile name without changing the account or outgoing text.
+Vanilla and imported fonts use the same filter for drawing, measurement,
+clipping and line wrapping, covering chat, tab, scoreboards, titles, tooltips,
+name labels and client menus. Matching ignores case and handles names split
+across text styles or colour codes. Chat refreshes when the toggle or alias
+changes, and masking remains active in StreamProof captures.
 
 `/bytephase waypoint`, `/bytephase findings` and `/bytephase profile` manage
 local navigation and saved settings. `/fakeplayer` creates a local visual-test

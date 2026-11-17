@@ -16,7 +16,7 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL33;
 
 /**
- * Captures the raw GL state touched by the Clarity passes and restores it on
+ * Captures the raw GL state touched by the Bytephase passes and restores it on
  * close. Keep this deliberately small: every field here is something the
  * shader renderers actually change.
  */

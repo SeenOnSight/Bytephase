@@ -2,6 +2,7 @@ package dev.bytephase.pvp.module.impl.combat;
 
 import dev.bytephase.pvp.mixin.AccessorElytraFlyMultiPlayerGameMode;
 import dev.bytephase.pvp.mixin.AccessorLocalPlayer;
+import dev.bytephase.pvp.gui.TotemInventoryScreen;
 import dev.bytephase.pvp.event.EventHandler;
 import dev.bytephase.pvp.event.EventPriority;
 import dev.bytephase.pvp.event.impl.TickEvent;
@@ -17,7 +18,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.LocalPlayer;
@@ -64,6 +64,7 @@ public final class AutoInvTotemModule extends ClientModule {
     private int clickedAt = -1;
     private int swappedAt = -1;
     private boolean openedInventory;
+    private TotemInventoryScreen inventoryScreen;
     private int passSwaps;
     private int unsafeTicks;
     private int totemSlot = -1;
@@ -128,12 +129,12 @@ public final class AutoInvTotemModule extends ClientModule {
     protected void onDisable() {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
+        if (this.openedInventory && mc.screen == this.inventoryScreen) {
+            if (player != null) player.closeContainer();
+            else mc.setScreen(null);
+        }
         if (player != null) {
             Inventory inventory = player.getInventory();
-            if (this.openedInventory && mc.screen instanceof InventoryScreen) {
-                player.closeContainer();
-            }
-
             if ((this.step == AutoInvTotemModule.Step.HOTBAR_SWAP || this.step == AutoInvTotemModule.Step.HOTBAR_RETURN) && mc.screen == null) {
                 this.restoreSlot(inventory);
             }
@@ -180,8 +181,9 @@ public final class AutoInvTotemModule extends ClientModule {
                 }
             }
         } else {
-            if (player != null && this.openedInventory && mc.screen instanceof InventoryScreen) {
-                player.closeContainer();
+            if (this.openedInventory && mc.screen == this.inventoryScreen) {
+                if (player != null) player.closeContainer();
+                else mc.setScreen(null);
             }
 
             this.reset();
@@ -211,7 +213,8 @@ public final class AutoInvTotemModule extends ClientModule {
                     boolean canOpen = !mc.gameMode.isServerControlledInventory() && !sneakForced();
                     if (!offhandJob || this.hotbarSource(inventory) == -1 || !this.mode.is("Hotbar Swap") && canOpen) {
                         if (canOpen) {
-                            mc.setScreen(new InventoryScreen(player));
+                            this.inventoryScreen = new TotemInventoryScreen(player, this);
+                            mc.setScreen(this.inventoryScreen);
                             this.startPass(true);
                         } else {
                             this.idleUntil = this.tick + 10;
@@ -233,7 +236,9 @@ public final class AutoInvTotemModule extends ClientModule {
     }
 
     private boolean refillWanted(Inventory inventory) {
-        return this.hotbarRefill.get() && !inventory.getItem(this.hotbarSlot.getInt() - 1).is(Items.TOTEM_OF_UNDYING);
+        // A refill may fill a consumed totem slot, but never exchange an anchor,
+        // glowstone, weapon or another occupied hotbar stack into storage.
+        return this.hotbarRefill.get() && inventory.getItem(this.hotbarSlot.getInt() - 1).isEmpty();
     }
 
     private static boolean sneakForced() {
@@ -249,14 +254,21 @@ public final class AutoInvTotemModule extends ClientModule {
     }
 
     private void inventorySwap(Minecraft mc, LocalPlayer player) {
-        if (mc.screen instanceof AbstractContainerScreen<?> screen && (!this.openedInventory || mc.screen instanceof InventoryScreen)) {
+        if (mc.screen instanceof AbstractContainerScreen<?> screen && (!this.openedInventory || mc.screen == this.inventoryScreen)) {
             AbstractContainerMenu menu = screen.getMenu();
             if (clickSafe(player) && menu.getCarried().isEmpty()) {
                 int source = this.passSource(player);
                 if (source != -1 && this.passSwaps < 2) {
                     int button = player.getOffhandItem().isEmpty() ? 40 : this.hotbarSlot.getInt() - 1;
-                    menu.findSlot(player.getInventory(), source)
-                        .ifPresent(index -> mc.gameMode.handleInventoryMouseClick(menu.containerId, index, button, ClickType.SWAP, player));
+                    var index = menu.findSlot(player.getInventory(), source);
+                    boolean destinationEmpty = button == 40 ? player.getOffhandItem().isEmpty()
+                        : player.getInventory().getItem(button).isEmpty();
+                    if (index.isEmpty() || !destinationEmpty
+                            || !menu.getSlot(index.getAsInt()).getItem().is(Items.TOTEM_OF_UNDYING)) {
+                        this.schedule(AutoInvTotemModule.Step.INVENTORY_CLOSE, this.closeDelay.getInt());
+                        return;
+                    }
+                    mc.gameMode.handleInventoryMouseClick(menu.containerId, index.getAsInt(), button, ClickType.SWAP, player);
                     this.clickedAt = this.tick;
                     this.passSwaps++;
                     if (this.passSource(player) != -1 && this.passSwaps < 2) {
@@ -283,7 +295,7 @@ public final class AutoInvTotemModule extends ClientModule {
         if (this.passSource(player) != -1 && this.passSwaps < 2 && this.unsafeTicks <= 10 && mc.screen instanceof AbstractContainerScreen) {
             this.schedule(AutoInvTotemModule.Step.INVENTORY_SWAP, Math.max(1, this.swapDelay.getInt()));
         } else {
-            if (this.openedInventory && mc.screen instanceof InventoryScreen) {
+            if (this.openedInventory && mc.screen == this.inventoryScreen) {
                 if (!clickSafe(player) && ++this.unsafeTicks <= 10) {
                     this.readyAt = this.tick + 1;
                     return;
@@ -299,6 +311,14 @@ public final class AutoInvTotemModule extends ClientModule {
     private void finishPass() {
         this.idleUntil = this.tick + 4;
         this.endSequence();
+    }
+
+    public void cancelInventory(TotemInventoryScreen screen) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.screen != screen) return;
+        if (screen == this.inventoryScreen) this.finishPass();
+        if (mc.player != null) mc.player.closeContainer();
+        else mc.setScreen(null);
     }
 
     private int passSource(LocalPlayer player) {
@@ -417,6 +437,7 @@ public final class AutoInvTotemModule extends ClientModule {
         this.step = AutoInvTotemModule.Step.IDLE;
         this.reactionAt = -1;
         this.openedInventory = false;
+        this.inventoryScreen = null;
         this.passSwaps = 0;
         this.unsafeTicks = 0;
         this.totemSlot = -1;

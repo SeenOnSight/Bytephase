@@ -18,7 +18,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -36,11 +35,9 @@ public final class TriggerbotModule extends ClientModule {
     private static final String CRITS_SMART = "Smart";
     private static final String CRITS_ONLY = "Only";
     private static final int TRACK_GRACE_TICKS = 4;
-    private final BooleanSetting instant = this.addSetting("instant", new BooleanSetting("Instant", true));
-    private final NumberSetting cooldown = this.addSetting("cooldown", new NumberSetting("Cooldown (%)", 90.0F, 0.0F, 100.0F).step(1.0F));
-    private final NumberSetting reaction = this.addSetting("reaction", new NumberSetting("Reaction", 0.0F, 0.0F, 10.0F).step(1.0F));
+    private static final int SMART_MAX_WAIT_TICKS = 12;
+    private final NumberSetting reaction = this.addSetting("reaction", new NumberSetting("Reaction", 3.0F, 0.0F, 10.0F).step(1.0F));
     private final ModeSetting crits = this.addSetting("crits", new ModeSetting("Crits", "Smart", "Off", "Smart", "Only"));
-    private final NumberSetting critDelay = this.addSetting("crit-delay", new NumberSetting("Crit Wait (ticks)", 0.0F, 0.0F, 12.0F).step(1.0F));
     private final BooleanSetting holdAttack = this.addSetting("hold-attack", new BooleanSetting("Hold Attack", false));
     private final BooleanSetting players = this.addSetting("players", new BooleanSetting("Players", true));
     private final BooleanSetting hostiles = this.addSetting("hostiles", new BooleanSetting("Hostiles", false));
@@ -50,14 +47,13 @@ public final class TriggerbotModule extends ClientModule {
     private int trackedId = -1;
     private int seenTick;
     private int reactionDoneTick;
-    private int critWaitStartedTick = -1;
-    private LocalPlayer sessionPlayer;
-    private ClientLevel sessionLevel;
+    private int chargedTick = -1;
+    private int chargePause;
+    private int critWait;
+    private int critWaitTick = -1;
 
     public TriggerbotModule() {
-        super("triggerbot", "Triggerbot", "Hits the crosshair target at a configurable cooldown threshold, with immediate frame checks.", ModuleCategory.COMBAT);
-        this.reaction.visibleWhen(() -> !this.instant.get());
-        this.critDelay.visibleWhen(() -> !this.instant.get() && this.crits.is(CRITS_SMART));
+        super("triggerbot", "Triggerbot", "Hits the entity under the crosshair once the swing is charged, with a reaction delay.", ModuleCategory.COMBAT);
     }
 
     @Override
@@ -75,79 +71,77 @@ public final class TriggerbotModule extends ClientModule {
         this.trackedId = -1;
         this.seenTick = 0;
         this.reactionDoneTick = 0;
-        this.critWaitStartedTick = -1;
-        this.sessionPlayer = null;
-        this.sessionLevel = null;
+        this.chargedTick = -1;
+        this.chargePause = 0;
+        this.critWait = 0;
+        this.critWaitTick = -1;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onTick(TickEvent event) {
         this.ticks++;
-        this.tryAttack(0.5F);
-    }
-
-    /** Called after local mouse look and aim assistance, including stationary frames. */
-    public void onFrame() {
-        if (this.isEnabled()) {
-            Minecraft mc = Minecraft.getInstance();
-            this.tryAttack(mc.getDeltaTracker().getGameTimeDeltaPartialTick(false));
-        }
-    }
-
-    private void tryAttack(float partialTick) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
-        if (!MeleeAttacks.canAct(mc) || !mc.isWindowActive() || mc.isPaused()
-            || player.isDeadOrDying() || player.isSpectator()) {
+        if (!MeleeAttacks.canAct(mc)) {
             this.trackedId = -1;
-            this.critWaitStartedTick = -1;
-            return;
-        }
-        if (player != this.sessionPlayer || mc.level != this.sessionLevel) {
-            this.sessionPlayer = player;
-            this.sessionLevel = mc.level;
-            this.trackedId = -1;
-            this.critWaitStartedTick = -1;
-        }
-        // Reuse the existing ownership guard for tick and frame callbacks.
-        if (MeleeAttacks.actedThisTick(player)) return;
-        EntityHitResult hit = MeleeAttacks.crosshairHit(mc);
-        if (this.holdAttack.get() && this.trackedId != -1 && hit == null
-            && mc.hitResult != null && mc.hitResult.getType() == Type.MISS) {
-            MeleeAttacks.takeAttackClicks(mc);
-        }
-        if (hit == null || !(hit.getEntity() instanceof LivingEntity target) || !this.isTarget(player, target)) {
-            if (this.ticks - this.seenTick > TRACK_GRACE_TICKS) this.trackedId = -1;
-            this.critWaitStartedTick = -1;
-            return;
-        }
-        if (target.getId() != this.trackedId) {
-            this.trackedId = target.getId();
-            this.reactionDoneTick = this.ticks + (this.instant.get() ? 0 : this.reaction.getInt());
-            this.critWaitStartedTick = -1;
-        }
-        this.seenTick = this.ticks;
-        if ((!this.instant.get() && this.ticks < this.reactionDoneTick)
-            || this.holdAttack.get() && !mc.options.keyAttack.isDown()
-            || this.weaponsOnly.get() && !MeleeAttacks.isMeleeWeapon(player.getMainHandItem())
-            || CombatMacroLock.heldByOther(this) || MeleeAttacks.wastedOnShield(player, target)
-            || mc.missTime > 0 || MeleeAttacks.clickPending(mc)
-            || MeleeAttacks.rightClickComing(mc) || ServerRotation.pending()) return;
+        } else {
+            this.trackCharge(player);
+            EntityHitResult hit = MeleeAttacks.crosshairHit(mc);
+            if (this.holdAttack.get() && this.trackedId != -1 && mc.hitResult != null && mc.hitResult.getType() == Type.MISS) {
+                MeleeAttacks.takeAttackClicks(mc);
+            }
 
-        MaceModule mace = ModuleRegistry.get(MaceModule.class);
-        boolean smash = mace != null && mace.smashReady(player, target);
-        float progress = player.getAttackStrengthScale(Math.max(0.0F, Math.min(1.0F, partialTick)));
-        if (!smash && progress < this.cooldown.get() / 100.0F) return;
-        boolean stabbing = player.getMainHandItem().has(DataComponents.PIERCING_WEAPON);
-        if (!stabbing && !smash && !this.critsAllow(mc, player, target)) return;
-        if (stabbing) {
-            hit = this.stabHit(player, target);
-            if (hit == null) return;
+            if (hit != null && hit.getEntity() instanceof LivingEntity target && this.isTarget(player, target)) {
+                if (target.getId() != this.trackedId) {
+                    this.trackedId = target.getId();
+                    this.reactionDoneTick = this.ticks + this.reaction.getInt() + MeleeAttacks.spread(2);
+                }
+
+                this.seenTick = this.ticks;
+                MaceModule mace = ModuleRegistry.get(MaceModule.class);
+                boolean smash = mace != null && mace.smashReady(player, target);
+                if (this.ticks >= this.reactionDoneTick && (smash || this.chargedTick >= 0 && this.ticks - this.chargedTick >= this.chargePause)) {
+                    if (!this.holdAttack.get() || mc.options.keyAttack.isDown()) {
+                        if (!this.weaponsOnly.get() || MeleeAttacks.isMeleeWeapon(player.getMainHandItem())) {
+                            if (!CombatMacroLock.heldByOther(this) && !MeleeAttacks.wastedOnShield(player, target)) {
+                                if (mc.missTime <= 0 && !MeleeAttacks.clickPending(mc) && !MeleeAttacks.rightClickComing(mc) && !ServerRotation.pending()) {
+                                    boolean stabbing = player.getMainHandItem().has(DataComponents.PIERCING_WEAPON);
+                                    if (stabbing || smash || this.critsAllow(mc, player, target)) {
+                                        if (stabbing) {
+                                            hit = this.stabHit(player, target);
+                                            if (hit == null) {
+                                                return;
+                                            }
+                                        }
+
+                                        if (stabbing ? MeleeAttacks.stab(mc, hit) : MeleeAttacks.attack(mc, hit)) {
+                                            this.chargedTick = -1;
+                                            if (smash) {
+                                                mace.noteSmash();
+                                            }
+
+                                            MeleeAttacks.claimTick(mc);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (this.ticks - this.seenTick > 4) {
+                    this.trackedId = -1;
+                }
+            }
         }
-        if (stabbing ? MeleeAttacks.stab(mc, hit) : MeleeAttacks.attack(mc, hit)) {
-            this.critWaitStartedTick = -1;
-            if (smash) mace.noteSmash();
-            MeleeAttacks.claimTick(mc);
+    }
+
+    private void trackCharge(LocalPlayer player) {
+        if (MeleeAttacks.charge(player) < 1.0F) {
+            this.chargedTick = -1;
+        } else if (this.chargedTick < 0) {
+            this.chargedTick = this.ticks;
+            this.chargePause = MeleeAttacks.spread(1);
         }
     }
 
@@ -200,17 +194,19 @@ public final class TriggerbotModule extends ClientModule {
                 yield MeleeAttacks.wouldCrit(player, target);
             }
             case "Smart" -> {
-                if (this.instant.get() || this.critDelay.getInt() == 0 || MeleeAttacks.wouldCrit(player, target)) {
-                    this.critWaitStartedTick = -1;
+                if (MeleeAttacks.wouldCrit(player, target)) {
                     yield true;
                 } else {
                     boolean jumping = player.onGround() && mc.options.keyJump.isDown() && !player.isSprinting();
                     if (!MeleeAttacks.critStance(player, target) && !jumping) {
-                        this.critWaitStartedTick = -1;
                         yield true;
                     } else {
-                        if (this.critWaitStartedTick < 0) this.critWaitStartedTick = this.ticks;
-                        yield this.ticks - this.critWaitStartedTick >= this.critDelay.getInt();
+                        if (this.critWaitTick != this.ticks - 1) {
+                            this.critWait = 0;
+                        }
+
+                        this.critWaitTick = this.ticks;
+                        yield this.critWait++ >= 12;
                     }
                 }
             }

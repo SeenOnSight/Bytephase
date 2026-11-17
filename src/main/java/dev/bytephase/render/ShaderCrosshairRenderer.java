@@ -20,7 +20,7 @@ import net.minecraft.util.hit.EntityHitResult;
 import org.lwjgl.opengl.GL11;
 
 /**
- * Draws the supplied Clarity crosshair shader into a small framebuffer and
+ * Draws the supplied Bytephase crosshair shader into a small framebuffer and
  * hands that texture to the normal GUI renderer.
  */
 public final class ShaderCrosshairRenderer {
@@ -148,7 +148,7 @@ public final class ShaderCrosshairRenderer {
             shader.unbind();
         } catch (Throwable error) {
             failed = true;
-            BytePhase.LOGGER.error("Clarity crosshair shader pass failed", error);
+            BytePhase.LOGGER.error("Bytephase crosshair shader pass failed", error);
             return false;
         }
 

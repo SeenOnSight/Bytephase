@@ -21,6 +21,8 @@ public final class Coordinates extends Module {
             return;
         }
         Vec3d pos = mc.player.getEntityPos();
+        pos = new Vec3d(dev.bytephase.engine.categories.misc.FakeCoordinates.getX(pos.x), pos.y,
+            dev.bytephase.engine.categories.misc.FakeCoordinates.getZ(pos.z));
         String dimension = mc.world.getRegistryKey().getValue().getPath();
         String main;
         if (dimension.contains("nether")) {
